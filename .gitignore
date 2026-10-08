@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.local
+
+# Secrets. .env.development holds only dev defaults (local API URL, dev-only kiosk token) and is committed.
+.env
+.env.*
+!.env.development
