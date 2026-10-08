@@ -8,4 +8,4 @@ export const config = {
 export const APP_TITLE = "Kitchen Display";
 
 /** Roles the API's Kds policy accepts. */
-export const ALLOWED_ROLES = ["kitchen", "manager", "admin"];
+export const ALLOWED_ROLES = ["kitchen", "assistant_manager", "manager", "admin"];

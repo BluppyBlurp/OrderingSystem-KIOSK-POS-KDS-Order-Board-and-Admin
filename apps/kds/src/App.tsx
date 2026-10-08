@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { advance, setTokenSource, TICKETS_KEY, useTickets, type Order, type Step } from "./api";
 import { useSession } from "./auth";
+import { PendingApproval } from "./components/PendingApproval";
 import { Button, whereLabel } from "./components/ui";
 import { ALLOWED_ROLES } from "./config";
 import { beep, soundEnabled, unlockSound } from "./lib/beep";
@@ -12,6 +13,8 @@ import { useKitchenHub } from "./realtime";
 export function App() {
   const session = useSession();
   setTokenSource(session.getToken); // before any query below runs
+
+  if (!session.role) return <PendingApproval name={session.name} onRefresh={session.refresh} onSignOut={session.signOut} />;
 
   if (session.role && !ALLOWED_ROLES.includes(session.role)) {
     return (
