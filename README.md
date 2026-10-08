@@ -9,10 +9,10 @@ Design and decisions: [`docs.md`](docs.md). Progress: [`checklist.md`](checklist
 |---|---|---|
 | `main` | Backend API, docs, dev scripts | Render |
 | `frontend/kiosk` | Customer kiosk (frontend only) | Cloudflare Pages |
-| `frontend/pos` | Cashier POS *(not started)* | Cloudflare Pages |
-| `frontend/kds` | Kitchen display *(not started)* | Cloudflare Pages |
-| `frontend/board` | Customer order board *(not started)* | Cloudflare Pages |
-| `frontend/admin` | Admin back office *(not started)* | Cloudflare Pages |
+| `frontend/pos` | Cashier POS (frontend only) | Cloudflare Pages |
+| `frontend/kds` | Kitchen display (frontend only) | Cloudflare Pages |
+| `frontend/board` | Customer order board (frontend only) | Cloudflare Pages |
+| `frontend/admin` | Admin back office (frontend only) | Cloudflare Pages |
 
 Frontend branches contain no backend code. They reach the API through a typed client generated from
 `packages/api-client/openapi.json`, a committed snapshot of the API contract. After an API change, refresh it on the

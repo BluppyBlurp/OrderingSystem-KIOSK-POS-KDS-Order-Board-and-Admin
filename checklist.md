@@ -1,6 +1,6 @@
 # Fast-Food Kiosk Ordering System — Build Checklist
 
-**Last updated:** 2026-10-08 (backend: receipts, reports, media uploads; 124 tests passing)
+**Last updated:** 2026-10-08 (all five apps built; backend 124 tests passing)
 **Runtime:** .NET 10 LTS (API) · React + Vite (frontends)
 **Infrastructure:** Neon (Postgres) · Cloudflare R2 (media) · Clerk (staff auth) · Cloudflare Pages (frontends) · **Render** (API)
 **Branches:** `main` = backend + docs · `frontend/kiosk`, `frontend/pos`, `frontend/kds`, `frontend/board`, `frontend/admin` = frontend only, one per app
@@ -27,7 +27,7 @@
 - [x] OpenAPI document exposed in dev (`Microsoft.AspNetCore.OpenApi`)
 - [x] CORS allowlist from config
 - [x] Rate limiting middleware registered
-- [~] ⭐ pnpm workspace: `apps/kiosk`, `apps/pos` + `packages/api-client` done (one app per branch); `kds`, `board`, `admin`, `realtime`, `ui` to come
+- [x] ⭐ pnpm workspace per `frontend/*` branch: `apps/<app>` + `packages/api-client` for kiosk, POS, KDS, board and admin. Shared `realtime`/`ui` packages were not extracted: each branch is self-contained, so each app keeps its own small copy
 - [x] ⭐ Typed TS client generated from OpenAPI (`openapi-typescript` + `openapi-fetch`); `pnpm gen:api` refreshes it from the running API
 - [~] Tailwind 4 in the kiosk; shared `packages/ui` not extracted yet
 - [x] Smoke test: kiosk app renders the menu from the API (verified in a browser)
@@ -45,7 +45,7 @@
 - [x] ⭐ Device token scheme: `Device` entity, hashed token, `kind` (Kiosk/Board), `isActive`
 - [x] ⭐ Device auth handler (`dev_…` bearer tokens) + `Kiosk` / `Board` policies
 - [x] Admin endpoints to register, list, and revoke devices
-- [~] Clerk sign-in wired into POS, KDS, Admin apps *(POS done on `frontend/pos`; KDS and Admin not built yet)*
+- [x] Clerk sign-in wired into POS, KDS, Admin apps, with Dev sign-in buttons in development *(not yet tried with a real Clerk instance)* (2026-10-08)
 - [x] Route-group tests: kiosk/board tokens, each staff role, revoked tokens, cross-kiosk reads; plus a reflection test that every controller action declares a policy
 
 ---
@@ -63,8 +63,8 @@
 - [~] Content-hashed filenames + long `Cache-Control` max-age on R2 objects *(hashed names tested; `immutable`, 1-year header is set by the R2 adapter but not yet checked against a real bucket)* (2026-10-08)
 - [x] Quick toggles: availability switch, stock adjust (`PATCH`)
 - [x] `AuditLog` written on every admin mutation (actor, entity, before/after JSON; device token hashes excluded)
-- [ ] ⭐ Admin UI: product list, create/edit form, media manager, drag-to-reorder
-- [ ] Admin UI: category manager, modifier group manager
+- [x] ⭐ Admin UI: product list, create/edit form, media manager (R2 upload + add by URL), reorder with ↑/↓ buttons rather than drag (2026-10-08)
+- [x] Admin UI: category manager, modifier group manager (2026-10-08)
 - [x] Validation: cannot delete a category that still has products
 
 ---
@@ -155,15 +155,15 @@
 ## Milestone 6 — Kitchen Display (KDS)
 *Goal: the kitchen sees paid orders the moment they are paid.*
 
-- [~] ⭐ Clerk sign-in, `Kds` policy enforced *(policy done; sign-in UI pending)*
+- [x] ⭐ Clerk sign-in, `Kds` policy enforced (KDS app on `frontend/kds`)
 - [x] ⭐ `GET /api/kds/orders` — `Paid` + `Preparing` + `Ready` tickets (Ready needed for Handed Over)
-- [~] ⭐ SignalR `kitchen` group; new ticket appears without refresh *(push done; UI pending)*
+- [x] ⭐ SignalR `kitchen` group; new ticket appears without refresh (verified in a browser) (2026-10-08)
 - [x] ⭐ Ticket shows: order number, items + modifiers, order type, **table number**
 - [x] ⭐ Actions: Start (→ `Preparing`), Ready (→ `Ready`), Handed Over (→ `Completed`)
 - [x] ⭐ Illegal transitions rejected by the domain layer
-- [ ] Audio + visual alert on new order
-- [ ] Ticket age timer, colour-coded past a threshold
-- [ ] Reconnect handling: refetch full state on SignalR reconnect
+- [x] Audio + visual alert on new order (chime after one "Enable sound" tap, 10 s flash) (2026-10-08)
+- [x] Ticket age timer, colour-coded past a threshold (amber 5 min, red 10 min) (2026-10-08)
+- [x] Reconnect handling: refetch full state on SignalR reconnect, plus a 15 s poll (2026-10-08)
 
 ---
 
@@ -172,19 +172,19 @@
 
 - [x] ⭐ `GET /api/display/board` → `{preparing[], ready[]}`
 - [x] ⭐ Board auth, read-only: board device token **or** any staff role (matches docs §11)
-- [ ] ⭐ Two-column layout, very large numbers, readable across the room
-- [~] ⭐ Live updates via SignalR `board` group *(push done, numbers only, no items or totals; UI pending)*
+- [x] ⭐ Two-column layout, very large numbers, readable across the room (board app on `frontend/board`) (2026-10-08)
+- [x] ⭐ Live updates via SignalR `board` group (numbers only, no items or totals; verified in a browser) (2026-10-08)
 - [x] Ready orders show the table number for serve-to-table
-- [ ] Completed orders auto-clear after N seconds
-- [ ] Chime when an order moves to Ready
-- [ ] Auto-reconnect + "reconnecting" indicator
+- [x] Completed orders clear from the board as soon as the kitchen taps Handed over (the board never lists Completed) (2026-10-08)
+- [x] Chime when an order moves to Ready, with a 15 s highlight (2026-10-08)
+- [x] Auto-reconnect (retries forever) + "Reconnecting…" indicator (2026-10-08)
 
 ---
 
 ## Milestone 8 — Hardening
 - [x] ⭐ SignalR groups: `kitchen`, `pos`, `board`, `kiosks`, `kiosk-{orderId}` (assigned from identity on connect; a kiosk joins only its own orders)
 - [x] ⭐ `MenuChanged` push: the kiosk listens and updates prices / SOLD OUT mid-order (verified in a browser), and still refetches at the start of every order (2026-10-08)
-- [~] ⭐ Reconnect + full-state refetch on every realtime client *(kiosk and POS done; KDS and board not built yet)*
+- [x] ⭐ Reconnect + full-state refetch on every realtime client (kiosk, POS, KDS, board) (2026-10-08)
 - [x] Unit tests: order state machine, price calculation, stock rules
 - [x] Unit tests: change calculation, table-number validation
 - [~] ⭐ Integration test: create → pay → KDS → Ready → Completed *(cash and e-wallet done; card shares the e-wallet path)*
@@ -196,7 +196,7 @@
 ---
 
 ## Milestone 9 — Release
-- [~] Sales report endpoint + Admin reports page: `GET /api/admin/reports/sales?from=&to=` (totals, VAT, by method, by day, top 10 products) *(API done; Admin page pending)* (2026-10-08)
+- [x] Sales report endpoint + Admin reports page: `GET /api/admin/reports/sales?from=&to=` (totals, VAT, by method, by day, top 10 products) (2026-10-08)
 - [ ] Sentry on backend and all five frontends
 - [~] ⭐ API `Dockerfile` for Render *(written; the Release publish it runs was verified in Production mode, but the image itself hasn't been built: no Docker on the dev PC; Render builds it on first deploy)* (Render has no native .NET runtime; it deploys .NET as a Docker web service) (2026-10-08)
 - [x] Render: env vars (`ConnectionStrings__Default` = Neon pooled, `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__*`, `Cors__Origins__*` = Pages domains); health check `/health` (2026-10-08)
@@ -206,7 +206,7 @@
 - [x] Bootstrap until the Admin app exists: `Bootstrap__SeedDemoMenu` + `Bootstrap__KioskToken` (one kiosk, token chosen by you; weak tokens refused at startup). Remove once Admin manages menu and devices (2026-10-08)
 - [x] Startup fails fast on a missing or invalid `Slip__SigningKey`; a missing PayMongo key shows as "payment provider unavailable", not a crash (2026-10-08)
 - [ ] Decide the Render plan: free instances sleep when idle and take about a minute to wake, which a kiosk can't wait for (2026-10-08)
-- [~] Frontends on Cloudflare (one project per `frontend/*` branch), API on Render *(API + kiosk live 2026-10-08; kiosk runs as a Cloudflare Worker with static assets)*
+- [~] Frontends on Cloudflare (one project per `frontend/*` branch), API on Render *(API + kiosk live 2026-10-08; POS, KDS, board and admin are built but their Cloudflare projects aren't created yet: settings in each branch's README)*
 - [ ] HTTPS, environment secrets, database backups verified restorable
 - [x] Sample menu for demos (`Dev:SeedDemoData` locally, `Bootstrap__SeedDemoMenu` on Render)
 - [ ] Runbook: how to re-register a kiosk, reprint a receipt, void an order
@@ -242,4 +242,4 @@
 - [ ] Multi-branch support with per-branch menus and reports
 - [ ] Customer SMS/notification when ready
 - [ ] Accessibility: wheelchair-height UI mode, larger-text toggle
-- [~] *(2026-10-08)* Admin view of `OrderEvent` rows with `RefundNeeded` (payments that landed on expired/cancelled orders or with a mismatched amount) *(API: `GET /api/admin/reports/refunds-needed`; Admin page pending)*
+- [x] *(2026-10-08)* Admin view of `OrderEvent` rows with `RefundNeeded` (payments that landed on expired/cancelled orders or with a mismatched amount): Admin → Reports → Refunds to make

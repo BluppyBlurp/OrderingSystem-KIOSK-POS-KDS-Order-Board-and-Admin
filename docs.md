@@ -1,6 +1,6 @@
 # Fast-Food Kiosk Ordering System — Technical Docs
 
-**Status:** Backend MVP built, plus PDF receipts/slips, shift summary, sales report and R2 media uploads (124 backend tests). Kiosk (with realtime, upsell, offline menu) and POS apps built. KDS, board and admin apps not started.
+**Status:** Backend MVP built, plus PDF receipts/slips, shift summary, sales report and R2 media uploads (124 backend tests). All five apps built (kiosk, POS, KDS, board, admin) and verified against the API in a browser; real Clerk sign-in and R2 uploads not yet tried against live services.
 **Last updated:** 2026-10-08
 **Maintenance rule:** New or changed requirements go into `checklist.md` first, then this file is updated to match. Record every edit in §14 Change Log.
 
@@ -514,3 +514,4 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 | 2026-10-08 | PDF cash slip (`GET /kiosk/orders/{id}/slip`) and receipt reprint (`GET /pos/orders/{id}/receipt`) with QuestPDF; `GET /pos/shift-summary`; `GET /admin/reports/sales` and `/refunds-needed`; R2 media upload (presign → browser PUT → `media/uploaded`) with SkiaSharp WebP variants, content-hashed keys and MP4 duration checks (§3.2). SkiaSharp replaces ImageSharp. New config: `Storage:R2:*`, `Media:*`, `Receipt:*`. |
 | 2026-10-08 | Kiosk: SignalR (`MenuChanged`, `WatchOrder`, refetch on reconnect), upsell prompt before checkout, failed-payment screen with Try again / Pay at counter, service worker for an offline menu (§12). |
 | 2026-10-08 | POS shift summary screen: Shift panel (own cash, whole counter, voids), Start new shift saved per cashier on the till, printable 80 mm drawer-count slip. |
+| 2026-10-08 | KDS, order board and admin apps built on their `frontend/*` branches. KDS: live tickets, Start/Ready/Handed over, age colours, chime + flash. Board: board-token setup screen, Preparing/Now serving, chime on Ready, endless reconnect. Admin: menu, options, devices, reports, R2 upload. Reordering uses ↑/↓ buttons instead of drag. |
