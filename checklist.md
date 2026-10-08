@@ -12,12 +12,12 @@
 ## Milestone 0 — Foundations
 *Goal: `docker compose up` gives a running API, a database, and a blank React app that can call it.*
 
-- [~] ⭐ Project folders created: `backend/` + docs at root — *not a git repo yet*
+- [x] ⭐ Git repo on GitHub: `main` = backend + docs, one `frontend/*` branch per app
 - [x] ⭐ .NET 10 solution: `Kiosk.Api`, `Kiosk.Application`, `Kiosk.Domain`, `Kiosk.Infrastructure`
 - [x] Enforce dependency direction (Domain depends on nothing)
 - [x] ⭐ Local Postgres without Docker: `scripts/dev-db.ps1` runs portable PostgreSQL 17 on port **5433** (`docker-compose.yml` kept for machines that have Docker)
 - [x] ⭐ EF Core wired up, first migration runs on startup in dev
-- [ ] ⭐ Neon project created; pooled connection string in staging/prod config
+- [x] ⭐ Neon project created; pooled connection string set on Render (2026-10-08)
 - [ ] Verify Npgsql prepared statements work through the pooler (switch to session pooler if not)
 - [ ] Cron ping during trading hours to avoid cold starts
 - [ ] Nightly `pg_dump` to R2, 7-day retention
@@ -197,16 +197,16 @@
 - [ ] Sales report endpoint + Admin reports page
 - [ ] Sentry on backend and all five frontends
 - [~] ⭐ API `Dockerfile` for Render *(written; the Release publish it runs was verified in Production mode, but the image itself hasn't been built: no Docker on the dev PC; Render builds it on first deploy)* (Render has no native .NET runtime; it deploys .NET as a Docker web service) (2026-10-08)
-- [ ] Render: env vars (`ConnectionStrings__Default` = Neon pooled, `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__*`, `Cors__Origins__*` = Pages domains); health check `/health` (2026-10-08)
+- [x] Render: env vars (`ConnectionStrings__Default` = Neon pooled, `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__*`, `Cors__Origins__*` = Pages domains); health check `/health` (2026-10-08)
 - [x] `render.yaml` Blueprint (Singapore, next to Neon's ap-southeast-1; secrets prompted, never committed) (2026-10-08)
 - [x] API honours Render's `PORT` and its proxy's `X-Forwarded-For` (real client IP for rate limits, last hop only so it can't be spoofed) (2026-10-08)
 - [x] Migrations on deploy: `Database__MigrateOnStartup=true` while the API runs as a single instance (2026-10-08)
 - [x] Bootstrap until the Admin app exists: `Bootstrap__SeedDemoMenu` + `Bootstrap__KioskToken` (one kiosk, token chosen by you; weak tokens refused at startup). Remove once Admin manages menu and devices (2026-10-08)
 - [x] Startup fails fast on a missing or invalid `Slip__SigningKey`; a missing PayMongo key shows as "payment provider unavailable", not a crash (2026-10-08)
 - [ ] Decide the Render plan: free instances sleep when idle and take about a minute to wake, which a kiosk can't wait for (2026-10-08)
-- [ ] Frontends deployed to Cloudflare Pages (one project per `frontend/*` branch), API to Render
+- [~] Frontends on Cloudflare (one project per `frontend/*` branch), API on Render *(API + kiosk live 2026-10-08; kiosk runs as a Cloudflare Worker with static assets)*
 - [ ] HTTPS, environment secrets, database backups verified restorable
-- [ ] Seed script: sample menu for demos
+- [x] Sample menu for demos (`Dev:SeedDemoData` locally, `Bootstrap__SeedDemoMenu` on Render)
 - [ ] Runbook: how to re-register a kiosk, reprint a receipt, void an order
 - [ ] Redis backplane **only if** scaling past one API instance
 - [ ] Swap PayMongo sandbox keys for live keys
@@ -241,4 +241,3 @@
 - [ ] Customer SMS/notification when ready
 - [ ] Accessibility: wheelchair-height UI mode, larger-text toggle
 - [ ] *(2026-10-08)* Admin view of `OrderEvent` rows with `RefundNeeded` (payments that landed on expired/cancelled orders or with a mismatched amount)
-- [ ] *(2026-10-08)* Initialise a git repository and add `.gitignore` (`bin/`, `obj/`)
