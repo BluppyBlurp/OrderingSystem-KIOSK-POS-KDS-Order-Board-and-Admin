@@ -1,0 +1,10 @@
+// Cloudflare Workers static-assets deploy for the app (used when the project is a Worker, not a Pages project).
+// Build first (`pnpm --filter @kiosk/kds build`), then `npx wrangler deploy` uploads apps/kds/dist.
+{
+  "name": "kds",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./apps/kds/dist",
+    "not_found_handling": "single-page-application"
+  }
+}
