@@ -147,6 +147,8 @@
 - [x] Cancel/void an unpaid order with a reason
 - [ ] ⭐ Receipt PDF (QuestPDF) + reprint
 - [ ] Shift summary: cash collected, order count
+- [ ] ⭐ POS app on `frontend/pos`: scan-or-type box (USB QR scanners type like a keyboard), live pending list, order panel, tendered keypad with quick amounts, big change-due, cancel with reason, printed receipt (2026-10-08)
+- [x] Development-only staff sign-in (`devstaff_<role>` tokens) so POS/KDS/Admin can be tested before Clerk roles exist; rejected outside Development (2026-10-08)
 
 ---
 

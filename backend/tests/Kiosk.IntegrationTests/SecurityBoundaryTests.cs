@@ -63,6 +63,12 @@ public sealed class SecurityBoundaryTests(KioskApiFactory api)
     public async Task Staff_roles_reach_only_their_apps(string role, string route, HttpStatusCode expected) =>
         (await api.Staff(role).GetAsync(route)).AssertStatus(expected);
 
+    [Theory]
+    [InlineData("devstaff_admin")]
+    [InlineData("devstaff_cashier")]
+    public async Task Dev_staff_tokens_are_rejected_outside_development(string token) =>
+        (await api.WithBearer(token).GetAsync("/api/pos/orders")).AssertStatus(HttpStatusCode.Unauthorized);
+
     [Fact]
     public async Task Board_token_cannot_create_orders()
     {

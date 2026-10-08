@@ -42,8 +42,12 @@ function Initialize-Cluster {
 switch ($Command) {
     'start' {
         Initialize-Cluster
-        & "$bin\pg_ctl.exe" -D $data -l $log -w start
-        if ($LASTEXITCODE -ne 0) { throw "Postgres did not start; see $log" }
+        # Own hidden console: Postgres must not inherit this terminal's console or output pipes. Otherwise piping
+        # this script's output hangs the caller, and closing the terminal kills Postgres's worker processes.
+        $ctl = Start-Process -FilePath "$bin\pg_ctl.exe" -ArgumentList @('-D', "`"$data`"", '-l', "`"$log`"", '-w', 'start') `
+            -WindowStyle Hidden -PassThru
+        $ctl.WaitForExit() # waits for pg_ctl only, not for the server it launched
+        if ($ctl.ExitCode -ne 0) { throw "Postgres did not start; see $log" }
         $env:PGPASSWORD = 'kiosk'
         $exists = & "$bin\psql.exe" -h localhost -p $port -U kiosk -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'kiosk'"
         if ($LASTEXITCODE -ne 0) { throw "Cannot connect to Postgres on port $port" }

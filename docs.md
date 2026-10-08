@@ -437,6 +437,8 @@ The role claim must be exposed in the token explicitly. Without it the API recei
 
 The API needs no Clerk secret key. Only the frontends use the publishable key.
 
+**Development-only staff sign-in:** with `Dev:StaffLogin=true` (set in `appsettings.Development.json`) the API accepts `Bearer devstaff_<role>` (e.g. `devstaff_cashier`) as a signed-in staff member, so POS, KDS and Admin can be tested before Clerk roles exist. The scheme is only registered in the Development environment; anywhere else those tokens go to Clerk JWT validation and fail (covered by a test).
+
 **Policies** (one per route group): `Kiosk` (kiosk device), `Board` (board device or any staff role), `Pos` (cashier/manager/admin), `Kds` (kitchen/manager/admin), `Admin` (manager/admin). The fallback policy denies everything, so an endpoint without a policy is unreachable, and a test fails the build if one exists.
 
 | Role | Kiosk | POS | KDS | Board | Admin |
@@ -495,3 +497,4 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 | 2026-10-08 | Hosting: API on **Render** (Docker web service; free instances sleep, see §3.3) instead of Fly.io. Frontend branches are now frontend-only (one Cloudflare Pages project each); `main` holds no frontend code. |
 | 2026-10-08 | Render deploy: `backend/Dockerfile`, `render.yaml` Blueprint (Singapore), proxy-aware client IP, `$PORT`, migrations on startup, startup check for the slip key, `Bootstrap__*` menu/kiosk seeding until the Admin app exists, first-deploy steps in §3.3. |
 | 2026-10-08 | `ConnectionStrings__Default` accepts Neon's `postgresql://` URL as well as the Npgsql keyword format (the first Render deploy failed on the URL form). |
+| 2026-10-08 | Development-only staff sign-in (`devstaff_<role>`); `scripts/dev-db.ps1` starts Postgres in its own hidden console (piping the script hung the terminal, and closing that terminal crashed Postgres). |

@@ -20,7 +20,7 @@ builder.Host.UseSerilog((ctx, log) => log.ReadFrom.Configuration(ctx.Configurati
 
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddKioskAuth(builder.Configuration);
+builder.Services.AddKioskAuth(builder.Configuration, builder.Environment);
 builder.Services.AddKioskRateLimits();
 
 // Same JSON rules for controllers and for the OpenAPI generator, so the TypeScript client matches the wire format:
