@@ -26,10 +26,10 @@
 - [x] OpenAPI document exposed in dev (`Microsoft.AspNetCore.OpenApi`)
 - [x] CORS allowlist from config
 - [x] Rate limiting middleware registered
-- [ ] ⭐ pnpm workspace: `apps/{kiosk,pos,kds,board,admin}` + `packages/{api-client,realtime,ui}`
-- [ ] ⭐ Typed TS client generated from OpenAPI, with an npm script to regenerate
-- [ ] Tailwind + shared UI package scaffolded
-- [ ] Smoke test: React app renders data from `GET /health` *(endpoint done; needs the frontend)*
+- [~] ⭐ pnpm workspace: `apps/kiosk` + `packages/api-client` done; `pos`, `kds`, `board`, `admin`, `realtime`, `ui` to come
+- [x] ⭐ Typed TS client generated from OpenAPI (`openapi-typescript` + `openapi-fetch`); `pnpm gen:api` refreshes it from the running API
+- [~] Tailwind 4 in the kiosk; shared `packages/ui` not extracted yet
+- [x] Smoke test: kiosk app renders the menu from the API (verified in a browser)
 
 ---
 
@@ -72,21 +72,24 @@
 *Goal: a customer can build a correct order and reach a payment choice.*
 
 - [x] ⭐ `GET /api/kiosk/menu` — categories, products, modifiers, availability
-- [ ] ⭐ Attract/idle screen with media loop
-- [ ] ⭐ Order type screen: **Counter pickup** vs **Serve to table**
-- [ ] ⭐ Table-number keypad, shown only for serve-to-table
+- [~] ⭐ Attract screen *(black-and-white shapes for now; promo media loop later)*
+- [x] ⭐ **Dine in** vs **Take out** screen (2026-10-08); take out always means counter pickup
+- [x] ⭐ Order type screen (dine in only): **Counter pickup** vs **Serve to table**
+- [x] ⭐ Table-number keypad, shown only for serve-to-table
 - [x] ⭐ Backend validation: serve-to-table requires a table number in range (1–60)
-- [~] Soft warning when a table number is already on an active order *(API `GET /api/kiosk/tables/{n}` done; UI pending)*
-- [ ] ⭐ Menu browse: category nav, product grid, product detail
-- [~] ⭐ Modifier selection honouring min/max/required rules *(enforced server-side; UI pending)*
-- [ ] ⭐ Cart in Zustand: add, edit quantity, remove, running total
+- [x] Soft warning when a table number is already on an active order
+- [x] ⭐ Menu browse: category nav, product grid, product detail
+- [x] ⭐ Modifier selection honouring min/max/required rules (client mirrors the server; server enforces)
+- [x] ⭐ Cart in Zustand: add, edit quantity, remove, running total
 - [ ] Upsell prompt before checkout (add a drink / upsize)
+- [x] ⭐ Guided customization: one question per modifier group (2026-10-08). Meals ask drink, upsize drink, upsize fries, fries flavor, add-ons; à la carte asks add a drink, add a side, add-ons
+- [x] ⭐ Demo menu seeded in Development: Rice Meals, Sandwiches, Pasta, Sides, Drinks, Desserts (2026-10-08)
 - [x] ⭐ `POST /api/kiosk/orders` — **server recomputes all prices**, client prices ignored
 - [x] ⭐ Stock **reserved** at order creation: availability check + atomic conditional decrement in one transaction (last item → exactly one winner)
 - [x] ⭐ Daily-resetting order number generator (`A-101`), concurrency-safe
 - [x] ⭐ `OrderItem` snapshots name + unit price at time of order
-- [ ] ⭐ Idle timeout: 60s warning → 15s → cart cleared
-- [ ] Touch-target audit (≥48px), sold-out items greyed in place
+- [x] ⭐ Idle timeout: 60s warning → 15s → cart cleared
+- [x] Touch targets ≥ 48px; sold-out items greyed in place with a SOLD OUT band
 - [ ] Service worker caches menu + images
 
 ---
@@ -96,31 +99,37 @@
 
 ### Shared
 - [x] ⭐ `Payment` entity + `OrderEvent` status history
-- [ ] ⭐ Payment method screen on kiosk
+- [x] ⭐ Payment method screen on kiosk
 - [x] ⭐ Stock reserved at creation; released on `Expired` / `Cancelled` (never on `Paid`)
 
 ### Cash — pay at counter
 - [x] ⭐ Order created as `Created` with `expiresAt`; `POST /pay {method: cash}` moves it to `AwaitingPayment`
 - [x] ⭐ Slip payload: order number, total, **signed short-lived QR token** (not the raw ID)
-- [ ] ⭐ Kiosk renders the slip on screen (QR + large order number)
+- [x] ⭐ Kiosk renders the slip on screen (QR + large order number)
 - [x] ⭐ Background job expires every pre-Paid order (`Created`, `AwaitingPayment`, `PaymentPending`, `Failed`) past `expiresAt`, releases stock
 - [ ] PDF slip generation (QuestPDF) for a future printer
 
 ### E-wallet (GCash / Maya) — PayMongo sandbox
 - [~] ⭐ `POST /orders/{id}/pay` creates a PayMongo **Checkout Session**, returns URL *(built against PayMongo's documented API; not yet run against the real sandbox — needs `sk_test_…` key)*
-- [ ] ⭐ Kiosk displays checkout (embedded or phone-scannable QR)
+- [x] ⭐ Kiosk shows a QR of the checkout page; the customer pays on their phone (QR Ph or card)
 - [x] ⭐ `POST /api/webhooks/paymongo` with **signature verification**
 - [x] ⭐ Webhook idempotency (same event ID processed once)
 - [x] ⭐ Webhook is the **only** thing that sets `Paid`; client redirect never is
-- [~] ⭐ Kiosk polls `GET /kiosk/orders/{id}` as a webhook-delay fallback *(endpoint done; UI pending)*
-- [~] Customer backs out → `POST /orders/{id}/cancel-checkout` → `Failed`; kiosk offers Retry or Switch to cash *(backend done; UI pending)*
+- [x] ⭐ Kiosk polls `GET /kiosk/orders/{id}` as a webhook-delay fallback *(endpoint done; UI pending)*
+- [~] Customer backs out → `cancel-checkout` → `Failed`; kiosk offers **Pay at counter instead** *(done)*; a Retry button is not built yet
+
+### QR Ph — PayMongo sandbox (2026-10-08)
+- [x] ⭐ `PaymentMethod.QrPh` → checkout session with `qrph` *(verified with the stub; real sandbox pending)*
+- [ ] Direct QR Ph image on the kiosk (Payment Intent API) instead of a QR of the checkout page
 
 ### Card — PayMongo sandbox
 - [~] ⭐ Card uses the same Checkout Session; PayMongo's hosted page handles 3DS *(replaces a hand-built payment-intent flow)*
 - [x] ⭐ Same webhook path, same idempotency guarantees
 - [ ] Declined card → clear kiosk message + retry
 
-- [ ] ⭐ Confirmation screen: order number, type, table number if any, ETA
+- [x] ⭐ Confirmation screen: order number, type, table number if any, ETA
+- [x] ⭐ Kiosk prints the cash slip / paid receipt via browser print (80 mm layout; Chrome `--kiosk-printing` prints silently) (2026-10-08)
+- [x] Dev-only "simulate payment" endpoint so the kiosk flow works before PayMongo is set up (2026-10-08)
 
 ---
 
@@ -171,7 +180,7 @@
 
 ## Milestone 8 — Hardening
 - [x] ⭐ SignalR groups: `kitchen`, `pos`, `board`, `kiosks`, `kiosk-{orderId}` (assigned from identity on connect; a kiosk joins only its own orders)
-- [~] ⭐ `MenuChanged` push → kiosks update price/availability live *(push done; UI pending)*
+- [~] ⭐ `MenuChanged` push *(server push done; kiosk currently refetches the menu at the start of every order instead of listening)*
 - [ ] ⭐ Reconnect + full-state refetch on every realtime client
 - [x] Unit tests: order state machine, price calculation, stock rules
 - [x] Unit tests: change calculation, table-number validation

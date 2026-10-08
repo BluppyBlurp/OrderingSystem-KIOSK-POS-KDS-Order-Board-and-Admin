@@ -48,6 +48,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurren
     {
         builder.Properties<decimal>().HavePrecision(10, 2);
         builder.Properties<OrderStatus>().HaveConversion<string>().HaveMaxLength(20);
+        builder.Properties<DiningOption>().HaveConversion<string>().HaveMaxLength(20);
         builder.Properties<OrderType>().HaveConversion<string>().HaveMaxLength(20);
         builder.Properties<PaymentMethod>().HaveConversion<string>().HaveMaxLength(20);
         builder.Properties<PaymentStatus>().HaveConversion<string>().HaveMaxLength(20);

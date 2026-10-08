@@ -14,7 +14,11 @@ public sealed class CreateOrderRequestValidator : AbstractValidator<CreateOrderR
     {
         var o = options.Value;
 
+        RuleFor(x => x.DiningOption).IsInEnum();
         RuleFor(x => x.OrderType).IsInEnum();
+        RuleFor(x => x.OrderType).Equal(OrderType.CounterPickup)
+            .When(x => x.DiningOption == DiningOption.TakeOut)
+            .WithMessage("Take-out orders are picked up at the counter.");
         RuleFor(x => x.Items).NotEmpty().WithMessage("The cart is empty.");
         RuleFor(x => x.Items.Count).LessThanOrEqualTo(MaxLines).When(x => x.Items is not null);
         RuleForEach(x => x.Items).ChildRules(line =>

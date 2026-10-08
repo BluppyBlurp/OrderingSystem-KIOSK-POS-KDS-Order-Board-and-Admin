@@ -22,8 +22,8 @@ public class ModifierRulesTests
         addOns.Modifiers.AddRange([cheese, bacon]);
 
         var product = new Product { Name = "Burger", BasePrice = 99 };
-        product.ModifierGroups.Add(new ProductModifierGroup { ModifierGroup = size, ModifierGroupId = size.Id });
-        product.ModifierGroups.Add(new ProductModifierGroup { ModifierGroup = addOns, ModifierGroupId = addOns.Id });
+        product.ModifierGroups.Add(new ProductModifierGroup { ModifierGroup = size, ModifierGroupId = size.Id, SortOrder = 0 });
+        product.ModifierGroups.Add(new ProductModifierGroup { ModifierGroup = addOns, ModifierGroupId = addOns.Id, SortOrder = 1 });
         return (product, medium, large, cheese, bacon);
     }
 
@@ -33,6 +33,14 @@ public class ModifierRulesTests
         var b = Burger();
         var chosen = ModifierRules.Resolve(b.Product, [b.Large.Id, b.Cheese.Id]);
         Assert.Equal(35, chosen.Sum(m => m.PriceDelta));
+    }
+
+    [Fact]
+    public void Picks_come_back_in_question_order_whatever_order_they_were_tapped()
+    {
+        var b = Burger();
+        var chosen = ModifierRules.Resolve(b.Product, [b.Cheese.Id, b.Large.Id]);
+        Assert.Equal(["Large", "Cheese"], chosen.Select(m => m.Name));
     }
 
     [Fact]
@@ -107,16 +115,23 @@ public class CreateOrderValidatorTests
     [InlineData(60, true)]
     [InlineData(61, false)]
     public void Table_number_range_for_serve_to_table(int? table, bool valid) =>
-        Assert.Equal(valid, Validator.Validate(new CreateOrderRequest(OrderType.ServeToTable, table, [Line])).IsValid);
+        Assert.Equal(valid, Validator.Validate(new CreateOrderRequest(DiningOption.DineIn, OrderType.ServeToTable, table, [Line])).IsValid);
+
+    [Fact]
+    public void Take_out_must_be_counter_pickup()
+    {
+        Assert.False(Validator.Validate(new CreateOrderRequest(DiningOption.TakeOut, OrderType.ServeToTable, 5, [Line])).IsValid);
+        Assert.True(Validator.Validate(new CreateOrderRequest(DiningOption.TakeOut, OrderType.CounterPickup, null, [Line])).IsValid);
+    }
 
     [Fact]
     public void Empty_cart_is_invalid() =>
-        Assert.False(Validator.Validate(new CreateOrderRequest(OrderType.CounterPickup, null, [])).IsValid);
+        Assert.False(Validator.Validate(new CreateOrderRequest(DiningOption.DineIn, OrderType.CounterPickup, null, [])).IsValid);
 
     [Theory]
     [InlineData(0, false)]
     [InlineData(20, true)]
     [InlineData(21, false)]
     public void Quantity_bounds(int qty, bool valid) =>
-        Assert.Equal(valid, Validator.Validate(new CreateOrderRequest(OrderType.CounterPickup, null, [Line with { Quantity = qty }])).IsValid);
+        Assert.Equal(valid, Validator.Validate(new CreateOrderRequest(DiningOption.DineIn, OrderType.CounterPickup, null, [Line with { Quantity = qty }])).IsValid);
 }

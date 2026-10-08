@@ -3,6 +3,7 @@ using System;
 using Kiosk.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Kiosk.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008032334_AddDiningOption")]
+    partial class AddDiningOption
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -399,9 +402,6 @@ namespace Kiosk.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("LineNumber")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("LineTotal")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
@@ -454,9 +454,6 @@ namespace Kiosk.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("PriceDeltaSnapshot")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

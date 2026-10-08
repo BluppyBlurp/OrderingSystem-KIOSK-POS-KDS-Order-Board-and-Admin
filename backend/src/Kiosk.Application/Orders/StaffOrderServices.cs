@@ -115,7 +115,7 @@ public sealed class KdsService(IAppDbContext db, IOrderNotifier notifier, Busine
     }
 }
 
-public sealed record BoardEntryDto(string OrderNumber, OrderType Type, int? TableNumber);
+public sealed record BoardEntryDto(string OrderNumber, DiningOption DiningOption, OrderType Type, int? TableNumber);
 
 public sealed record BoardDto(IReadOnlyList<BoardEntryDto> Preparing, IReadOnlyList<BoardEntryDto> Ready);
 
@@ -126,7 +126,7 @@ public sealed class BoardService(IAppDbContext db)
         var rows = await db.Orders.AsNoTracking()
             .Where(o => o.Status == OrderStatus.Paid || o.Status == OrderStatus.Preparing || o.Status == OrderStatus.Ready)
             .OrderBy(o => o.PaidAt)
-            .Select(o => new { o.Status, Entry = new BoardEntryDto(o.OrderNumber, o.Type, o.TableNumber) })
+            .Select(o => new { o.Status, Entry = new BoardEntryDto(o.OrderNumber, o.DiningOption, o.Type, o.TableNumber) })
             .ToListAsync(ct);
 
         return new BoardDto(

@@ -8,8 +8,9 @@ public class OrderTests
     private static readonly DateTimeOffset T0 = new(2026, 10, 8, 4, 0, 0, TimeSpan.Zero);
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(15);
 
-    private static Order NewOrder(OrderType type = OrderType.CounterPickup, int? table = null, decimal unitPrice = 142.50m, int qty = 2) =>
-        Order.Create("A-101", new DateOnly(2026, 10, 8), type, table, Guid.NewGuid(),
+    private static Order NewOrder(OrderType type = OrderType.CounterPickup, int? table = null, decimal unitPrice = 142.50m, int qty = 2,
+        DiningOption dining = DiningOption.DineIn) =>
+        Order.Create("A-101", new DateOnly(2026, 10, 8), dining, type, table, Guid.NewGuid(),
             [new OrderItem { ProductId = Guid.NewGuid(), NameSnapshot = "Burger", UnitPriceSnapshot = unitPrice, Quantity = qty }],
             vatRate: 0.12m, T0, Window);
 
@@ -38,6 +39,14 @@ public class OrderTests
     {
         var ex = Assert.Throws<DomainException>(() => NewOrder(OrderType.CounterPickup, table: 12));
         Assert.Equal("table_number_not_allowed", ex.Code);
+    }
+
+    [Fact]
+    public void Take_out_cannot_be_served_to_a_table()
+    {
+        var ex = Assert.Throws<DomainException>(() => NewOrder(OrderType.ServeToTable, table: 5, dining: DiningOption.TakeOut));
+        Assert.Equal("takeout_is_pickup", ex.Code);
+        Assert.Equal(DiningOption.TakeOut, NewOrder(dining: DiningOption.TakeOut).DiningOption);
     }
 
     [Fact]
