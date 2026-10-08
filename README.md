@@ -35,9 +35,11 @@ run `pnpm gen:api` with the API running to refresh it and the generated types, t
 | Setting | Value |
 |---|---|
 | Production branch | `frontend/kiosk` |
-| Build command | `pnpm install --frozen-lockfile && pnpm --filter @kiosk/kiosk build` |
+| Build command | `npx --yes pnpm@10.26.1 install --frozen-lockfile && npx --yes pnpm@10.26.1 --filter @kiosk/kiosk build` |
 | Build output directory | `apps/kiosk/dist` |
 | Environment variables | `VITE_API_URL` = the Render API URL (e.g. `https://<service>.onrender.com`), `NODE_VERSION` = `22` |
+
+The build command fetches pnpm itself because Cloudflare's build image doesn't always have it ("No preset version installed for command pnpm"). `VITE_API_URL` must have no trailing slash.
 
 The API must list the Pages domain in `Cors:Origins`. On first launch each kiosk shows a setup screen;
 enter the device token from Admin → Devices.
