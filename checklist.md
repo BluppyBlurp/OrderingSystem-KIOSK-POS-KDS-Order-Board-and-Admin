@@ -245,4 +245,5 @@
 - [ ] Multi-branch support with per-branch menus and reports
 - [ ] Customer SMS/notification when ready
 - [ ] Accessibility: wheelchair-height UI mode, larger-text toggle
+- [ ] *(2026-10-08)* **Local (LAN) version, once the cloud version is done:** one in-store PC runs Postgres, the API and all five frontends; kiosks, POS, KDS and board connect over the shop Wi-Fi (`http://192.168.x.x`). One script to start everything (API on `0.0.0.0`, the PC's LAN address in CORS) and print each device's link. Keeps ordering, cash, KDS and board working when the internet is down. Still needs internet for: staff sign-in (Clerk; dev sign-in works offline), online payments (PayMongo, plus a tunnel so its webhook can reach the PC). Longer term: hybrid (local in-store, synced to the cloud for reports/backups), the way most restaurant POS systems work
 - [x] *(2026-10-08)* Admin view of `OrderEvent` rows with `RefundNeeded` (payments that landed on expired/cancelled orders or with a mismatched amount): Admin → Reports → Refunds to make
