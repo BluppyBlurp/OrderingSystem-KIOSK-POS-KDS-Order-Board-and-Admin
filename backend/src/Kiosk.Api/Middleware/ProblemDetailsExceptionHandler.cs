@@ -22,6 +22,7 @@ internal sealed class ProblemDetailsExceptionHandler(IProblemDetailsService prob
                 Status = StatusCodes.Status400BadRequest, Title = "The request is invalid.",
             },
             NotFoundException => new ProblemDetails { Status = StatusCodes.Status404NotFound, Title = exception.Message },
+            ServiceUnavailableException => new ProblemDetails { Status = StatusCodes.Status503ServiceUnavailable, Title = exception.Message },
             DomainException d => WithCode(new ProblemDetails { Status = StatusCodes.Status409Conflict, Title = d.Message }, d.Code),
             DbUpdateConcurrencyException => WithCode(new ProblemDetails
             {

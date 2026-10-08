@@ -1,6 +1,6 @@
 # Fast-Food Kiosk Ordering System — Build Checklist
 
-**Last updated:** 2026-10-08 (backend MVP built: 90 tests passing)
+**Last updated:** 2026-10-08 (backend: receipts, reports, media uploads; 124 tests passing)
 **Runtime:** .NET 10 LTS (API) · React + Vite (frontends)
 **Infrastructure:** Neon (Postgres) · Cloudflare R2 (media) · Clerk (staff auth) · Cloudflare Pages (frontends) · **Render** (API)
 **Branches:** `main` = backend + docs · `frontend/kiosk`, `frontend/pos`, `frontend/kds`, `frontend/board`, `frontend/admin` = frontend only, one per app
@@ -27,7 +27,7 @@
 - [x] OpenAPI document exposed in dev (`Microsoft.AspNetCore.OpenApi`)
 - [x] CORS allowlist from config
 - [x] Rate limiting middleware registered
-- [~] ⭐ pnpm workspace: `apps/kiosk` + `packages/api-client` done; `pos`, `kds`, `board`, `admin`, `realtime`, `ui` to come
+- [~] ⭐ pnpm workspace: `apps/kiosk`, `apps/pos` + `packages/api-client` done (one app per branch); `kds`, `board`, `admin`, `realtime`, `ui` to come
 - [x] ⭐ Typed TS client generated from OpenAPI (`openapi-typescript` + `openapi-fetch`); `pnpm gen:api` refreshes it from the running API
 - [~] Tailwind 4 in the kiosk; shared `packages/ui` not extracted yet
 - [x] Smoke test: kiosk app renders the menu from the API (verified in a browser)
@@ -45,7 +45,7 @@
 - [x] ⭐ Device token scheme: `Device` entity, hashed token, `kind` (Kiosk/Board), `isActive`
 - [x] ⭐ Device auth handler (`dev_…` bearer tokens) + `Kiosk` / `Board` policies
 - [x] Admin endpoints to register, list, and revoke devices
-- [ ] Clerk sign-in wired into POS, KDS, Admin apps
+- [~] Clerk sign-in wired into POS, KDS, Admin apps *(POS done on `frontend/pos`; KDS and Admin not built yet)*
 - [x] Route-group tests: kiosk/board tokens, each staff role, revoked tokens, cross-kiosk reads; plus a reflection test that every controller action declares a policy
 
 ---
@@ -57,10 +57,10 @@
 - [x] ⭐ Admin CRUD: categories (name, sortOrder, isActive)
 - [x] ⭐ Admin CRUD: products (name, description, basePrice, stock, isAvailable, sortOrder). Product edits never overwrite stock; stock changes go through `PATCH /stock`
 - [x] ⭐ Admin CRUD: modifier groups (minSelect, maxSelect, isRequired) + modifiers with price deltas
-- [ ] ⭐ R2 presigned upload for **images**
-- [ ] R2 presigned upload for **videos** + size/duration limits
-- [ ] ⭐ Server-side variants at upload time (ImageSharp): thumbnail + WebP, stored alongside original
-- [ ] Content-hashed filenames + long `Cache-Control` max-age on R2 objects
+- [~] ⭐ R2 presigned upload for **images**: `POST /api/admin/media/presign` → browser PUTs to R2 → `POST /products/{id}/media/uploaded` *(code + tests against a fake bucket; real bucket not created yet, see `Storage__R2__*` in `render.yaml`)* (2026-10-08)
+- [~] R2 presigned upload for **videos** + size/duration limits: MP4 only, ≤ 50 MB, ≤ 30 s; the API reads the real duration from the file *(same caveat as images)* (2026-10-08)
+- [x] ⭐ Server-side variants at upload time: 1600 px WebP + 480 px WebP thumbnail, stored alongside the original. **SkiaSharp, not ImageSharp**: ImageSharp 4 needs a license key to build, and 3.1 has unfixed advisories (2026-10-08)
+- [~] Content-hashed filenames + long `Cache-Control` max-age on R2 objects *(hashed names tested; `immutable`, 1-year header is set by the R2 adapter but not yet checked against a real bucket)* (2026-10-08)
 - [x] Quick toggles: availability switch, stock adjust (`PATCH`)
 - [x] `AuditLog` written on every admin mutation (actor, entity, before/after JSON; device token hashes excluded)
 - [ ] ⭐ Admin UI: product list, create/edit form, media manager, drag-to-reorder
@@ -82,7 +82,7 @@
 - [x] ⭐ Menu browse: category nav, product grid, product detail
 - [x] ⭐ Modifier selection honouring min/max/required rules (client mirrors the server; server enforces)
 - [x] ⭐ Cart in Zustand: add, edit quantity, remove, running total
-- [ ] Upsell prompt before checkout (add a drink / upsize)
+- [x] Upsell prompt before checkout: "Anything else?" once per order, only for a drink / side / dessert the cart doesn't already include (a meal's drink and fries count). Upsizing stays in the meal questions (2026-10-08)
 - [x] ⭐ Guided customization: one question per modifier group (2026-10-08). Meals ask drink, upsize drink, upsize fries, fries flavor, add-ons; à la carte asks add a drink, add a side, add-ons
 - [x] ⭐ Demo menu seeded in Development: Rice Meals, Sandwiches, Pasta, Sides, Drinks, Desserts (2026-10-08)
 - [x] ⭐ `POST /api/kiosk/orders` — **server recomputes all prices**, client prices ignored
@@ -91,7 +91,7 @@
 - [x] ⭐ `OrderItem` snapshots name + unit price at time of order
 - [x] ⭐ Idle timeout: 60s warning → 15s → cart cleared
 - [x] Touch targets ≥ 48px; sold-out items greyed in place with a SOLD OUT band
-- [ ] Service worker caches menu + images
+- [x] Service worker caches menu + images (production builds only): app shell and menu network-first with cached fallback, images and hashed assets cache-first; orders and payments never cached. Verified offline in a browser (2026-10-08)
 
 ---
 
@@ -108,7 +108,7 @@
 - [x] ⭐ Slip payload: order number, total, **signed short-lived QR token** (not the raw ID)
 - [x] ⭐ Kiosk renders the slip on screen (QR + large order number)
 - [x] ⭐ Background job expires every pre-Paid order (`Created`, `AwaitingPayment`, `PaymentPending`, `Failed`) past `expiresAt`, releases stock
-- [ ] PDF slip generation (QuestPDF) for a future printer
+- [x] PDF slip generation (QuestPDF): `GET /api/kiosk/orders/{id}/slip`, 80 mm, with the QR (2026-10-08)
 
 ### E-wallet (GCash / Maya) — PayMongo sandbox
 - [~] ⭐ `POST /orders/{id}/pay` creates a PayMongo **Checkout Session**, returns URL *(built against PayMongo's documented API; not yet run against the real sandbox — needs `sk_test_…` key)*
@@ -116,8 +116,8 @@
 - [x] ⭐ `POST /api/webhooks/paymongo` with **signature verification**
 - [x] ⭐ Webhook idempotency (same event ID processed once)
 - [x] ⭐ Webhook is the **only** thing that sets `Paid`; client redirect never is
-- [x] ⭐ Kiosk polls `GET /kiosk/orders/{id}` as a webhook-delay fallback *(endpoint done; UI pending)*
-- [~] Customer backs out → `cancel-checkout` → `Failed`; kiosk offers **Pay at counter instead** *(done)*; a Retry button is not built yet
+- [x] ⭐ Kiosk polls `GET /kiosk/orders/{id}` as a webhook-delay fallback, and also watches the order over SignalR (`WatchOrder`) so it advances as soon as the webhook lands (2026-10-08)
+- [x] Customer backs out → `cancel-checkout` → `Failed`; kiosk offers **Try again** or **Pay at counter** (2026-10-08)
 
 ### QR Ph — PayMongo sandbox (2026-10-08)
 - [x] ⭐ `PaymentMethod.QrPh` → checkout session with `qrph` *(verified with the stub; real sandbox pending)*
@@ -126,7 +126,7 @@
 ### Card — PayMongo sandbox
 - [~] ⭐ Card uses the same Checkout Session; PayMongo's hosted page handles 3DS *(replaces a hand-built payment-intent flow)*
 - [x] ⭐ Same webhook path, same idempotency guarantees
-- [ ] Declined card → clear kiosk message + retry
+- [x] Declined card → clear kiosk message + retry: any `Failed` order shows "The payment didn't go through" with Try again / Pay at counter; switching to cash from `Failed` no longer errors (2026-10-08)
 
 - [x] ⭐ Confirmation screen: order number, type, table number if any, ETA
 - [x] ⭐ Kiosk prints the cash slip / paid receipt via browser print (80 mm layout; Chrome `--kiosk-printing` prints silently) (2026-10-08)
@@ -137,17 +137,17 @@
 ## Milestone 5 — Cashier POS
 *Goal: the cashier never retypes an order.*
 
-- [~] ⭐ Clerk sign-in, `Pos` policy enforced *(policy done; sign-in UI pending)*
-- [~] ⭐ Pending cash orders list, live via SignalR `pos` group *(backend done; UI pending)*
+- [x] ⭐ Clerk sign-in, `Pos` policy enforced (POS app on `frontend/pos`; Dev sign-in buttons in development)
+- [x] ⭐ Pending cash orders list, live via SignalR `pos` group (falls back to polling every 15 s when offline)
 - [x] ⭐ `GET /api/pos/orders/lookup?code=` accepts QR token **or** typed order number
 - [x] ⭐ Order detail: items, modifiers, total, order type, table number
 - [x] ⭐ `POST /confirm-cash` with `{amountTendered}` → server computes change
-- [ ] ⭐ Change-due displayed prominently
+- [x] ⭐ Change-due displayed prominently
 - [x] ⭐ On confirm: `Paid` → SignalR to KDS and Board
 - [x] Cancel/void an unpaid order with a reason
-- [ ] ⭐ Receipt PDF (QuestPDF) + reprint
-- [ ] Shift summary: cash collected, order count
-- [ ] ⭐ POS app on `frontend/pos`: scan-or-type box (USB QR scanners type like a keyboard), live pending list, order panel, tendered keypad with quick amounts, big change-due, cancel with reason, printed receipt (2026-10-08)
+- [x] ⭐ Receipt PDF (QuestPDF) + reprint: `GET /api/pos/orders/{id}/receipt`, marked REPRINT (2026-10-08). The POS prints its first receipt through the browser
+- [~] Shift summary: cash collected, order count: `GET /api/pos/shift-summary?since=` (mine + whole counter + my voids) *(API done; POS screen pending)* (2026-10-08)
+- [x] ⭐ POS app on `frontend/pos`: scan-or-type box (USB QR scanners type like a keyboard), live pending list, order panel, tendered keypad with quick amounts, big change-due, cancel with reason, printed receipt (2026-10-08)
 - [x] Development-only staff sign-in (`devstaff_<role>` tokens) so POS/KDS/Admin can be tested before Clerk roles exist; rejected outside Development (2026-10-08)
 
 ---
@@ -183,8 +183,8 @@
 
 ## Milestone 8 — Hardening
 - [x] ⭐ SignalR groups: `kitchen`, `pos`, `board`, `kiosks`, `kiosk-{orderId}` (assigned from identity on connect; a kiosk joins only its own orders)
-- [~] ⭐ `MenuChanged` push *(server push done; kiosk currently refetches the menu at the start of every order instead of listening)*
-- [ ] ⭐ Reconnect + full-state refetch on every realtime client
+- [x] ⭐ `MenuChanged` push: the kiosk listens and updates prices / SOLD OUT mid-order (verified in a browser), and still refetches at the start of every order (2026-10-08)
+- [~] ⭐ Reconnect + full-state refetch on every realtime client *(kiosk and POS done; KDS and board not built yet)*
 - [x] Unit tests: order state machine, price calculation, stock rules
 - [x] Unit tests: change calculation, table-number validation
 - [~] ⭐ Integration test: create → pay → KDS → Ready → Completed *(cash and e-wallet done; card shares the e-wallet path)*
@@ -196,7 +196,7 @@
 ---
 
 ## Milestone 9 — Release
-- [ ] Sales report endpoint + Admin reports page
+- [~] Sales report endpoint + Admin reports page: `GET /api/admin/reports/sales?from=&to=` (totals, VAT, by method, by day, top 10 products) *(API done; Admin page pending)* (2026-10-08)
 - [ ] Sentry on backend and all five frontends
 - [~] ⭐ API `Dockerfile` for Render *(written; the Release publish it runs was verified in Production mode, but the image itself hasn't been built: no Docker on the dev PC; Render builds it on first deploy)* (Render has no native .NET runtime; it deploys .NET as a Docker web service) (2026-10-08)
 - [x] Render: env vars (`ConnectionStrings__Default` = Neon pooled, `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__*`, `Cors__Origins__*` = Pages domains); health check `/health` (2026-10-08)
@@ -242,4 +242,4 @@
 - [ ] Multi-branch support with per-branch menus and reports
 - [ ] Customer SMS/notification when ready
 - [ ] Accessibility: wheelchair-height UI mode, larger-text toggle
-- [ ] *(2026-10-08)* Admin view of `OrderEvent` rows with `RefundNeeded` (payments that landed on expired/cancelled orders or with a mismatched amount)
+- [~] *(2026-10-08)* Admin view of `OrderEvent` rows with `RefundNeeded` (payments that landed on expired/cancelled orders or with a mismatched amount) *(API: `GET /api/admin/reports/refunds-needed`; Admin page pending)*

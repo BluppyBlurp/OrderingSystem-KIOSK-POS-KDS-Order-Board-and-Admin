@@ -4,6 +4,9 @@ namespace Kiosk.Application.Common;
 
 public class NotFoundException(string message) : Exception(message);
 
+/// <summary>A dependency the request needs is not set up on this deployment (answered as 503).</summary>
+public class ServiceUnavailableException(string message) : Exception(message);
+
 public sealed class OrderingOptions
 {
     public const string Section = "Ordering";
@@ -27,5 +30,25 @@ public sealed class BusinessClock(TimeProvider time, IOptions<OrderingOptions> o
 
     public DateTimeOffset Now => time.GetUtcNow();
 
-    public DateOnly Today => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(Now, _zone).DateTime);
+    public DateOnly Today => DateOnly.FromDateTime(ToLocal(Now).DateTime);
+
+    /// <summary>Store-local wall time, for printed receipts and reports.</summary>
+    public DateTimeOffset ToLocal(DateTimeOffset instant) => TimeZoneInfo.ConvertTime(instant, _zone);
+
+    /// <summary>The instant a business date starts (local midnight), in UTC as Npgsql requires for timestamptz.</summary>
+    public DateTimeOffset StartOf(DateOnly date)
+    {
+        var midnight = date.ToDateTime(TimeOnly.MinValue);
+        return new DateTimeOffset(midnight, _zone.GetUtcOffset(midnight)).ToUniversalTime();
+    }
+}
+
+/// <summary>Header and footer printed on receipts and slips.</summary>
+public sealed class ReceiptOptions
+{
+    public const string Section = "Receipt";
+
+    public string StoreName { get; set; } = "Food Ordering Kiosk";
+    public string[] HeaderLines { get; set; } = [];
+    public string Footer { get; set; } = "Thank you! Please keep this receipt.";
 }

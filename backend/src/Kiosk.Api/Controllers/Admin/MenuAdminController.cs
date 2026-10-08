@@ -38,7 +38,7 @@ public sealed class CategoriesController(AdminMenuService menu) : ControllerBase
 [ApiController]
 [Route("api/admin/products")]
 [Authorize(Policy = Policies.Admin)]
-public sealed class ProductsController(AdminMenuService menu) : ControllerBase
+public sealed class ProductsController(AdminMenuService menu, MediaService media) : ControllerBase
 {
     [HttpGet]
     public Task<IReadOnlyList<AdminProductDto>> List([FromQuery] Guid? categoryId, CancellationToken ct) =>
@@ -75,7 +75,12 @@ public sealed class ProductsController(AdminMenuService menu) : ControllerBase
         return NoContent();
     }
 
-    /// <summary>Registers already-uploaded media by URL. R2 presigned upload is a later milestone.</summary>
+    /// <summary>Step 2 of an upload (step 1: POST /api/admin/media/presign): checks the file, writes the variants, attaches it.</summary>
+    [HttpPost("{id:guid}/media/uploaded")]
+    public Task<MediaDto> CompleteUpload(Guid id, CompleteMediaUploadRequest r, CancellationToken ct) =>
+        media.CompleteUploadAsync(id, r, ct);
+
+    /// <summary>Registers media that is already hosted elsewhere, by https URL.</summary>
     [HttpPost("{id:guid}/media")]
     public Task<MediaDto> AddMedia(Guid id, AddMediaRequest r, CancellationToken ct) => menu.AddMediaAsync(id, r, ct);
 
@@ -123,4 +128,14 @@ public sealed class ModifierGroupsController(AdminMenuService menu) : Controller
         await menu.DeleteModifierAsync(groupId, id, ct);
         return NoContent();
     }
+}
+
+[ApiController]
+[Route("api/admin/media")]
+[Authorize(Policy = Policies.Admin)]
+public sealed class MediaController(MediaService media) : ControllerBase
+{
+    /// <summary>Step 1 of an upload: a short-lived URL the browser PUTs the file to, straight into R2.</summary>
+    [HttpPost("presign")]
+    public Task<PresignedUploadDto> Presign(PresignMediaRequest r, CancellationToken ct) => media.PresignAsync(r, ct);
 }

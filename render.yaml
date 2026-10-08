@@ -52,3 +52,17 @@ services:
         sync: false
       - key: PayMongo__CancelUrl
         sync: false
+
+      # Cloudflare R2 for menu images and videos. Media uploads answer 503 until all five are set.
+      # The API token needs Object Read & Write on this bucket only. PublicBaseUrl is the bucket's public
+      # https URL (custom domain or r2.dev). The bucket's CORS policy must allow PUT from the Admin app's origin.
+      - key: Storage__R2__AccountId
+        sync: false
+      - key: Storage__R2__AccessKeyId
+        sync: false
+      - key: Storage__R2__SecretAccessKey
+        sync: false
+      - key: Storage__R2__Bucket
+        sync: false
+      - key: Storage__R2__PublicBaseUrl
+        sync: false

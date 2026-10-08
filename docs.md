@@ -1,6 +1,6 @@
 # Fast-Food Kiosk Ordering System — Technical Docs
 
-**Status:** Backend MVP + kiosk app built (97 backend tests, 8 kiosk unit tests; kiosk flow verified in a browser). POS, KDS, board and admin apps not started.
+**Status:** Backend MVP built, plus PDF receipts/slips, shift summary, sales report and R2 media uploads (124 backend tests). Kiosk (with realtime, upsell, offline menu) and POS apps built. KDS, board and admin apps not started.
 **Last updated:** 2026-10-08
 **Maintenance rule:** New or changed requirements go into `checklist.md` first, then this file is updated to match. Record every edit in §14 Change Log.
 
@@ -65,7 +65,9 @@ Replicate a McDonald's-style self-order kiosk, software only. A customer orders 
 | Validation | FluentValidation | Keeps DTO rules out of controllers |
 | Logging | Serilog → console + file/Seq | Structured logs |
 | Jobs | `BackgroundService` (Hangfire if it grows) | Order expiry + stock release every 30 s. No reset job is needed for order numbers: the counter is one row per business date |
-| PDF | QuestPDF | Receipts and cash slips |
+| PDF | QuestPDF (Community license) | Receipts and cash slips, 80 mm continuous page; QR via QRCoder |
+| Images | SkiaSharp | WebP variants at upload time. ImageSharp was the first choice, but v4 needs a license key to build and v3.1 has unfixed advisories |
+| Object storage | AWSSDK.S3 against R2's S3 API | Presigned PUT uploads; no Cloudflare-specific SDK |
 | Docs | `Microsoft.AspNetCore.OpenApi` | Built-in OpenAPI document; source for the generated TS client |
 
 ### Frontend (all five apps)
@@ -103,7 +105,14 @@ Neon meters compute-hours and storage instead. A single-branch kiosk doing a few
 
 Video is where bandwidth caps kill free tiers. R2 does not charge egress at all, so there is no meter to drain. Cloudinary was considered and rejected: its free plan puts storage, delivery bandwidth and transformations on one shared 25-credit meter, and on fixed tiers exceeding it can block uploads rather than billing overage.
 
-R2 has no on-the-fly image transforms — which this project does not need. Menu media is uploaded once by a manager, so **thumbnails and WebP variants are generated server-side in C# at upload time** (ImageSharp) and stored alongside the original. One vendor, one bucket, predictable cost.
+R2 has no on-the-fly image transforms — which this project does not need. Menu media is uploaded once by a manager, so **thumbnails and WebP variants are generated server-side in C# at upload time** (SkiaSharp) and stored alongside the original. One vendor, one bucket, predictable cost.
+
+**Upload flow**
+1. Admin app → `POST /api/admin/media/presign {type, contentType, sizeBytes}` → a 10-minute presigned PUT URL for `uploads/{random}`.
+2. The browser PUTs the file straight to R2 (large videos never pass through the API).
+3. Admin app → `POST /api/admin/products/{id}/media/uploaded {key, type, sortOrder}`. The API reads the upload back and checks it is really what it claims: images must decode as JPEG/PNG/WebP (≤ 10 MB, ≤ 40 MP); videos must be MP4 (≤ 50 MB) whose movie header says ≤ 30 s. It then writes `media/{sha256}.webp` (1600 px), `media/{sha256}-thumb.webp` (480 px) and the original, or `media/{sha256}.mp4`, all with `Cache-Control: public, max-age=31536000, immutable`, and deletes the upload whether it was accepted or not. Re-encoding images also strips EXIF/GPS metadata; the EXIF rotation is applied first.
+
+**Bucket setup:** an R2 API token with Object Read & Write on this bucket only; public access through a custom domain or the r2.dev URL (`Storage__R2__PublicBaseUrl`); and a bucket CORS rule allowing `PUT` with a `Content-Type` header from the Admin app's origin. Until all five `Storage__R2__*` values are set, the media endpoints answer 503.
 
 **Egress is a non-problem here by design.** A fixed set of kiosks requests the same menu images all day. With long `Cache-Control` max-age, content-hashed filenames and the kiosk service worker, each asset is fetched roughly once per device per deploy — not once per customer.
 
@@ -113,7 +122,7 @@ Render has no native .NET runtime, so the API deploys as a **Docker web service*
 
 - **Sleeping.** Free instances spin down when idle, and the first request afterwards waits about a minute while it wakes. A customer at a kiosk won't wait that long, so production needs an always-on paid instance, or at least a keep-alive ping during trading hours (as with Neon's cold starts).
 - **Background job.** The order-expiry job only runs while the instance is awake. Overdue orders still expire on the first run after waking, because the job catches up.
-- **Config** comes from Render environment variables with the `__` separator: `ConnectionStrings__Default` (Neon pooled), `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__SecretKey`, `PayMongo__WebhookSecret`, and `Cors__Origins__0…n` (one per Cloudflare Pages domain). The health check path is `/health`.
+- **Config** comes from Render environment variables with the `__` separator: `ConnectionStrings__Default` (Neon pooled), `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__SecretKey`, `PayMongo__WebhookSecret`, `Storage__R2__{AccountId,AccessKeyId,SecretAccessKey,Bucket,PublicBaseUrl}` (§3.2), and `Cors__Origins__0…n` (one per Cloudflare Pages domain). Optional: `Receipt__StoreName`, `Receipt__HeaderLines__0…n` (address, TIN), `Receipt__Footer`. The health check path is `/health`.
 - **WebSockets** (SignalR) are supported on Render web services.
 - **Proxy:** `ForwardedHeaders__Enabled=true` makes the API take the client IP from the last `X-Forwarded-For` hop only (the one Render adds), so per-IP rate limits see real clients and can't be fooled by a forged header. The container listens on Render's `$PORT`.
 - **Bootstrap (until the Admin app exists):** a fresh production database has no menu and no kiosk device. `Bootstrap__SeedDemoMenu=true` adds the sample menu once, and `Bootstrap__KioskToken` registers one kiosk with a token you choose (`dev_` + at least 32 random characters; anything weaker stops the API at startup). Remove both once Admin manages the menu and devices.
@@ -339,6 +348,7 @@ StockMovement (optional, per-item stock ledger)
 | POST | `/api/kiosk/orders/{id}/pay` | `{method}` → cash slip (QR token) or checkout URL. Allowed from `Created` or `Failed` |
 | POST | `/api/kiosk/orders/{id}/cancel-checkout` | Customer backed out of the online checkout → `Failed` |
 | GET | `/api/kiosk/orders/{id}` | Status poll fallback. Only orders this kiosk created; others return 404 |
+| GET | `/api/kiosk/orders/{id}/slip` | Cash slip PDF (80 mm, with the QR). Only `AwaitingPayment` orders this kiosk created |
 | GET | `/api/kiosk/tables/{n}` | `{inUse}` for the soft table-in-use warning |
 
 ### POS — Clerk `cashier` / `admin`
@@ -348,7 +358,8 @@ StockMovement (optional, per-item stock ledger)
 | GET | `/api/pos/orders/lookup?code=` | QR token or order number |
 | POST | `/api/pos/orders/{id}/confirm-cash` | `{amountTendered}` → change due |
 | POST | `/api/pos/orders/{id}/cancel` | `{reason}` |
-| GET | `/api/pos/orders/{id}/receipt` | PDF *(not built yet)* |
+| GET | `/api/pos/orders/{id}/receipt` | Paid receipt PDF (80 mm), marked REPRINT |
+| GET | `/api/pos/shift-summary?since=` | Cash orders and cash collected by the calling cashier and by the whole counter, plus their voids. `since` defaults to the start of today |
 
 ### KDS — Clerk `kitchen` / `admin`
 `GET /api/kds/orders` (Paid, Preparing, Ready) · `POST /api/kds/orders/{id}/preparing` · `/ready` · `/complete`
@@ -359,8 +370,8 @@ StockMovement (optional, per-item stock ledger)
 ### Admin — Clerk `admin` / `manager`
 CRUD `/api/admin/categories` · `/products` · `/modifier-groups` · `/modifiers`
 `PUT /api/admin/categories/order` · `PUT /api/admin/products/order` (drag-to-reorder)
-`POST /api/admin/products/{id}/media` (register by URL) · `POST /api/admin/media/presign` (image + video, *not built yet*) · `PATCH /api/admin/products/{id}/stock` · `/availability`
-`GET /api/admin/reports/sales?from=&to=` *(not built yet)* · `GET/POST /api/admin/devices` · `POST /api/admin/devices/{id}/revoke`
+`POST /api/admin/media/presign` → `POST /api/admin/products/{id}/media/uploaded` (R2 upload, §3.2) · `POST /api/admin/products/{id}/media` (register an https URL) · `PATCH /api/admin/products/{id}/stock` · `/availability`
+`GET /api/admin/reports/sales?from=&to=` (business dates, inclusive, ≤ 366 days: totals, VAT, by method, by day, top 10 products) · `GET /api/admin/reports/refunds-needed` · `GET/POST /api/admin/devices` · `POST /api/admin/devices/{id}/revoke`
 
 ### Webhooks — anonymous, signature-verified
 `POST /api/webhooks/paymongo`
@@ -400,7 +411,7 @@ kiosk-system/
 │   │   └── Kiosk.Infrastructure/
 │   │       ├── Persistence/     # DbContext, configurations, migrations
 │   │       ├── Payments/        # PayMongoClient, webhook verifier
-│   │       ├── Storage/         # R2 presigned uploads + ImageSharp variants
+│   │       ├── Storage/         # R2 presigned uploads + SkiaSharp variants
 │   │       ├── Receipts/        # QuestPDF templates
 │   │       ├── Security/        # signed slip-QR tokens
 │   │       └── Jobs/            # order expiry
@@ -461,10 +472,12 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 - **Attract screen** loops promo media (black-and-white shapes for now); any touch starts an order.
 - **Idle reset**: 60s of inactivity → "Still there?" modal → 15s → cart cleared, back to attract. Prevents the next customer inheriting a stranger's cart.
 - **Touch targets ≥ 48px**, image-first product tiles, no scrolling text walls.
-- **Menu is fully data-driven.** A price or stock change in Admin pushes `MenuChanged` over SignalR, and the kiosk updates without a redeploy or restart. *(For now, the kiosk refetches the menu at the start of every order.)*
+- **Menu is fully data-driven.** A price or stock change in Admin pushes `MenuChanged` over SignalR, and the kiosk updates without a redeploy or restart. It also refetches the menu at the start of every order and after every reconnect, in case a push was missed.
+- **Upsell, once per order:** between cart and payment, "Anything else?" offers the cheapest few drinks, sides or desserts, only for a kind the cart doesn't already include (a meal's drink choice and fries count). Upsizing is asked inside the meal's own questions.
+- **Failed online payment** (declined card, or the customer pressed Cancel payment): "The payment didn't go through" with **Try again** (a new checkout for the same order) or **Pay at counter**. The order and its stock are kept until `expiresAt`.
 - **Demo data (Development only):** `Dev:SeedDemoData` seeds Rice Meals, Sandwiches, Pasta, Sides, Drinks and Desserts, plus a kiosk device whose token is `Dev:KioskToken`. The kiosk app's `.env.development` uses the same token.
 - **Sold-out items** grey out in place rather than disappearing — a vanishing tile confuses people mid-order.
-- **Service worker** caches the menu and images so a brief network drop does not blank the screen; order submission still requires connectivity and shows a clear retry.
+- **Service worker** (`public/sw.js`, production builds only) caches the menu and images so a brief network drop does not blank the screen: app shell and `GET /api/kiosk/menu` network-first with the cached copy as fallback; images and hashed `/assets/*` cache-first. Orders, payments and the hub are never cached, so order submission still requires connectivity and shows a clear retry. Bump `VERSION` in `sw.js` to drop old caches.
 - **Product videos** play muted and looped on the detail view only, never autoplay across the grid.
 
 ---
@@ -498,3 +511,5 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 | 2026-10-08 | Render deploy: `backend/Dockerfile`, `render.yaml` Blueprint (Singapore), proxy-aware client IP, `$PORT`, migrations on startup, startup check for the slip key, `Bootstrap__*` menu/kiosk seeding until the Admin app exists, first-deploy steps in §3.3. |
 | 2026-10-08 | `ConnectionStrings__Default` accepts Neon's `postgresql://` URL as well as the Npgsql keyword format (the first Render deploy failed on the URL form). |
 | 2026-10-08 | Development-only staff sign-in (`devstaff_<role>`); `scripts/dev-db.ps1` starts Postgres in its own hidden console (piping the script hung the terminal, and closing that terminal crashed Postgres). |
+| 2026-10-08 | PDF cash slip (`GET /kiosk/orders/{id}/slip`) and receipt reprint (`GET /pos/orders/{id}/receipt`) with QuestPDF; `GET /pos/shift-summary`; `GET /admin/reports/sales` and `/refunds-needed`; R2 media upload (presign → browser PUT → `media/uploaded`) with SkiaSharp WebP variants, content-hashed keys and MP4 duration checks (§3.2). SkiaSharp replaces ImageSharp. New config: `Storage:R2:*`, `Media:*`, `Receipt:*`. |
+| 2026-10-08 | Kiosk: SignalR (`MenuChanged`, `WatchOrder`, refetch on reconnect), upsell prompt before checkout, failed-payment screen with Try again / Pay at counter, service worker for an offline menu (§12). |

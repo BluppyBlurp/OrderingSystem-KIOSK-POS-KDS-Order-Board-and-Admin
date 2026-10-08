@@ -2,7 +2,9 @@ using Kiosk.Application.Abstractions;
 using Kiosk.Infrastructure.Jobs;
 using Kiosk.Infrastructure.Payments;
 using Kiosk.Infrastructure.Persistence;
+using Kiosk.Infrastructure.Receipts;
 using Kiosk.Infrastructure.Security;
+using Kiosk.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +48,13 @@ public static class DependencyInjection
                 http.Timeout = TimeSpan.FromSeconds(15);
             });
         }
+
+        services.AddSingleton<IReceiptRenderer, QuestPdfReceiptRenderer>();
+
+        // Until Storage:R2 is filled in, the media endpoints answer 503 instead of the API refusing to start.
+        services.AddOptions<R2Options>().Bind(config.GetSection(R2Options.Section));
+        services.AddSingleton<IMediaStorage, R2MediaStorage>();
+        services.AddSingleton<IImageProcessor, SkiaImageProcessor>();
 
         if (config.GetValue("Jobs:OrderExpiry", true))
             services.AddHostedService<OrderExpiryJob>();

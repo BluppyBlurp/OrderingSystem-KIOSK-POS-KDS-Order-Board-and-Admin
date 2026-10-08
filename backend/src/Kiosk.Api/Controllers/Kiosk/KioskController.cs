@@ -1,6 +1,7 @@
 using Kiosk.Api.Auth;
 using Kiosk.Application.Menu;
 using Kiosk.Application.Orders;
+using Kiosk.Application.Receipts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,7 +12,7 @@ namespace Kiosk.Api.Controllers.Kiosk;
 [ApiController]
 [Route("api/kiosk")]
 [Authorize(Policy = Policies.Kiosk)]
-public sealed class KioskController(MenuQueryService menu, KioskOrderService orders) : ControllerBase
+public sealed class KioskController(MenuQueryService menu, KioskOrderService orders, ReceiptService receipts) : ControllerBase
 {
     [HttpGet("menu")]
     public Task<MenuDto> GetMenu(CancellationToken ct) => menu.GetKioskMenuAsync(ct);
@@ -39,6 +40,15 @@ public sealed class KioskController(MenuQueryService menu, KioskOrderService ord
     [HttpGet("orders/{id:guid}")]
     public Task<KioskOrderDto> GetOrder(Guid id, CancellationToken ct) =>
         orders.GetAsync(id, User.GetDeviceId(), ct);
+
+    /// <summary>The cash slip as an 80 mm PDF, for a kiosk with a printer that cannot use browser printing.</summary>
+    [HttpGet("orders/{id:guid}/slip")]
+    [Produces("application/pdf")]
+    public async Task<FileContentResult> GetSlip(Guid id, CancellationToken ct)
+    {
+        var pdf = await receipts.GetSlipAsync(id, User.GetDeviceId(), ct);
+        return File(pdf.Content, "application/pdf", pdf.FileName);
+    }
 
     /// <summary>For the soft "Table 12 is already in use — continue?" warning.</summary>
     [HttpGet("tables/{tableNumber:int}")]

@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Kiosk.Api.Auth;
+using Kiosk.Application.Abstractions;
 using Kiosk.Application.Devices;
 using Kiosk.Domain.Devices;
 using Kiosk.Infrastructure.Persistence;
@@ -40,6 +41,8 @@ public sealed class KioskApiFactory : WebApplicationFactory<Program>, IAsyncLife
 
     public FakeTimeProvider Time { get; } = new(DateTimeOffset.UtcNow);
 
+    public FakeMediaStorage Media { get; } = new();
+
     private string ConnectionString => new NpgsqlConnectionStringBuilder(_server) { Database = _database }.ConnectionString;
 
     public async ValueTask InitializeAsync()
@@ -69,6 +72,7 @@ public sealed class KioskApiFactory : WebApplicationFactory<Program>, IAsyncLife
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Time);
+            services.AddSingleton<IMediaStorage>(Media);
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o =>
             {
                 o.Authority = null;
