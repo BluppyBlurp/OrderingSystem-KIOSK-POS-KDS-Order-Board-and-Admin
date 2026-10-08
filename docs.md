@@ -119,7 +119,7 @@ Render has no native .NET runtime, so the API deploys as a **Docker web service*
 - **Bootstrap (until the Admin app exists):** a fresh production database has no menu and no kiosk device. `Bootstrap__SeedDemoMenu=true` adds the sample menu once, and `Bootstrap__KioskToken` registers one kiosk with a token you choose (`dev_` + at least 32 random characters; anything weaker stops the API at startup). Remove both once Admin manages the menu and devices.
 
 **First deploy**
-1. **Render:** Dashboard → New → **Blueprint** → this repo. Render reads `render.yaml` from `main` and asks for the `sync: false` values: `ConnectionStrings__Default` (Neon pooled, .NET format), `Clerk__Authority`, `Bootstrap__KioskToken`. `Cors__Origins__0` and the PayMongo values can stay empty for now.
+1. **Render:** Dashboard → New → **Blueprint** → this repo. Render reads `render.yaml` from `main` and asks for the `sync: false` values: `ConnectionStrings__Default` (Neon pooled; either the `postgresql://…` URL from Neon's dashboard or the `Host=…;Database=…` format), `Clerk__Authority`, `Bootstrap__KioskToken`. `Cors__Origins__0` and the PayMongo values can stay empty for now.
 2. **Cloudflare Pages:** create a project from this repo, production branch `frontend/kiosk`, with the build settings in that branch's README and `VITE_API_URL` set to the Render URL.
 3. **Render again:** set `Cors__Origins__0` to the Pages URL (e.g. `https://<project>.pages.dev`); Render redeploys.
 4. **Kiosk:** open the Pages URL. On the setup screen, enter the same `Bootstrap__KioskToken`.
@@ -494,3 +494,4 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 | 2026-10-08 | Branch layout: `main` = backend + docs; one `frontend/*` branch per app. |
 | 2026-10-08 | Hosting: API on **Render** (Docker web service; free instances sleep, see §3.3) instead of Fly.io. Frontend branches are now frontend-only (one Cloudflare Pages project each); `main` holds no frontend code. |
 | 2026-10-08 | Render deploy: `backend/Dockerfile`, `render.yaml` Blueprint (Singapore), proxy-aware client IP, `$PORT`, migrations on startup, startup check for the slip key, `Bootstrap__*` menu/kiosk seeding until the Admin app exists, first-deploy steps in §3.3. |
+| 2026-10-08 | `ConnectionStrings__Default` accepts Neon's `postgresql://` URL as well as the Npgsql keyword format (the first Render deploy failed on the URL form). |

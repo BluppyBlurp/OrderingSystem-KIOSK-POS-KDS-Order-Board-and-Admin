@@ -1,4 +1,5 @@
 using Kiosk.Infrastructure.Payments;
+using Kiosk.Infrastructure.Persistence;
 using Kiosk.Infrastructure.Security;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
@@ -113,5 +114,39 @@ public class PayMongoWebhookParserTests
     {
         var body = PaidBody().Replace("checkout_session.payment.paid", "source.chargeable");
         Assert.Null(Parser.Parse(body, $"t=1,te={PayMongoWebhookParser.Sign(body, 1, Secret)}"));
+    }
+}
+
+public class PostgresConnectionStringTests
+{
+    [Fact]
+    public void Neon_url_is_converted_to_npgsql_format()
+    {
+        var result = new Npgsql.NpgsqlConnectionStringBuilder(PostgresConnectionString.Normalize(
+            "postgresql://neondb_owner:p%40ss:w0rd@ep-x-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"));
+
+        Assert.Equal("ep-x-pooler.c-4.ap-southeast-1.aws.neon.tech", result.Host);
+        Assert.Equal(5432, result.Port);
+        Assert.Equal("neondb", result.Database);
+        Assert.Equal("neondb_owner", result.Username);
+        Assert.Equal("p@ss:w0rd", result.Password);
+        Assert.Equal(Npgsql.SslMode.Require, result.SslMode);
+        Assert.Equal(Npgsql.ChannelBinding.Require, result.ChannelBinding);
+    }
+
+    [Fact]
+    public void Url_port_and_verify_full_are_kept()
+    {
+        var result = new Npgsql.NpgsqlConnectionStringBuilder(
+            PostgresConnectionString.Normalize("postgres://u:p@db.example.com:6543/app?sslmode=verify-full"));
+        Assert.Equal(6543, result.Port);
+        Assert.Equal(Npgsql.SslMode.VerifyFull, result.SslMode);
+    }
+
+    [Fact]
+    public void Keyword_format_passes_through_unchanged()
+    {
+        const string cs = "Host=localhost;Port=5433;Database=kiosk;Username=kiosk;Password=kiosk";
+        Assert.Equal(cs, PostgresConnectionString.Normalize(cs));
     }
 }

@@ -15,8 +15,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
-        var connectionString = config.GetConnectionString("Default")
-                               ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
+        var connectionString = PostgresConnectionString.Normalize(
+            config.GetConnectionString("Default")
+            ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured."));
 
         // No EnableRetryOnFailure: it rejects the explicit transactions that stock reservation relies on.
         services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connectionString, npgsql =>
