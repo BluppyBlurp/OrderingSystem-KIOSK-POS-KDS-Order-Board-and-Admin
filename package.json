@@ -1,0 +1,12 @@
+{
+  "name": "kiosk-frontend",
+  "private": true,
+  "packageManager": "pnpm@10.26.1",
+  "scripts": {
+    "dev:admin": "pnpm --filter @kiosk/admin dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "gen:api": "pnpm --filter @kiosk/api-client gen"
+  }
+}

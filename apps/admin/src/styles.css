@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/* Black and white only for now; the real design comes later. */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: #fff;
+  color: #000;
+  touch-action: manipulation;
+}
+
+#print-root {
+  display: none;
+}
+
+/* Only the receipt prints, sized for an 80 mm thermal roll. */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  #root {
+    display: none !important;
+  }
+  #print-root {
+    display: block !important;
+  }
+}

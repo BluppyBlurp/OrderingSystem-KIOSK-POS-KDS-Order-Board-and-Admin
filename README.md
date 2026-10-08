@@ -1,11 +1,54 @@
 # Admin back office
 
-**Not started.** Frontend only; the API lives on the `main` branch (see `docs.md` there).
+Frontend only. The API lives on the `main` branch (see `docs.md` there).
 
-- **Job:** Menu, modifiers, prices, stock and availability, media, devices (kiosk/board tokens), reports.
+- **Menu:** categories (add, rename, hide, reorder, delete) and products (create, edit, price, availability, stock,
+  reorder, the questions the kiosk asks and their order, photos and videos). Every save updates kiosks live.
+- **Options:** option groups (the kiosk's questions) and their options with price changes.
+- **Devices:** register kiosks and order boards (the token is shown once), revoke them.
+- **Reports:** sales by date range (totals, VAT, by payment method, by day, top products) and payments that need a
+  manual refund.
+- **Uploads** go straight from the browser to Cloudflare R2 with a presigned URL, so the bucket's CORS policy must
+  allow `PUT` with a `Content-Type` header from this app's origin. Until the API's `Storage__R2__*` settings are
+  filled in, uploads say storage isn't configured; media can still be added by https URL.
 - **Auth:** Clerk sign-in (`manager`, `admin`)
 - **API:** `/api/admin/*`
-- **Deploy:** Cloudflare Pages (production branch `frontend/admin`), with `VITE_API_URL` pointing to the Render API.
 
-When this app is started it will follow the `frontend/kiosk` layout: a pnpm workspace with `apps/admin` and
-`packages/api-client` (typed client generated from the API's OpenAPI document).
+## Run locally
+
+Start the backend from the `main` checkout first (`./scripts/dev-db.ps1 start`, then
+`dotnet run --project backend/src/Kiosk.Api`). Then, in this branch:
+
+```powershell
+pnpm install
+pnpm dev:admin          # http://localhost:5177, uses apps/admin/.env.development
+```
+
+In development the sign-in screen shows **Dev sign-in** buttons that use the API's Development-only
+`devstaff_<role>` tokens. For real Clerk sign-in, put `VITE_CLERK_PUBLISHABLE_KEY` in `apps/admin/.env.local`.
+
+## Checks
+
+```powershell
+pnpm test; pnpm typecheck; pnpm build
+```
+
+## API client
+
+`packages/api-client/openapi.json` is a snapshot of the API's OpenAPI document. After the API changes on `main`,
+run `pnpm gen:api` with the API running to refresh it and the generated types, then commit both.
+
+## Deploy: Cloudflare
+
+Same setup as the kiosk (see the `frontend/kiosk` README), with these values:
+
+| Setting | Value |
+|---|---|
+| Branch | `frontend/admin` |
+| Build command | `npx --yes pnpm@10.26.1 install --frozen-lockfile && npx --yes pnpm@10.26.1 --filter @kiosk/admin build` |
+| Deploy command (Worker) | `npx wrangler deploy` (uploads `apps/admin/dist`, as set in `wrangler.jsonc`) |
+| Output directory (Pages) | `apps/admin/dist` |
+| Build variables | `VITE_API_URL` = the Render API URL, `VITE_CLERK_PUBLISHABLE_KEY`, `NODE_VERSION` = `22` |
+
+`VITE_*` values must be **build** variables: Vite bakes them into the files at build time. Add the deployed URL to the
+API's `Cors__Origins__*` on Render, and to `Clerk__AuthorizedParties__*` if you use it.
