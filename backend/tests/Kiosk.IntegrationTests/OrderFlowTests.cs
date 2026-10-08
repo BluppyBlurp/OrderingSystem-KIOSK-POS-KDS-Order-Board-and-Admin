@@ -123,12 +123,14 @@ public sealed class OrderFlowTests(KioskApiFactory api)
 
         var tampered = new
         {
+            diningOption = "TakeOut",
             orderType = "CounterPickup",
             total = 1,
             items = new[] { new { productId = fries.Id, quantity = 3, price = 0.01, unitPrice = 0.01 } },
         };
         var order = await (await kiosk.PostAsJsonAsync("/api/kiosk/orders", tampered)).ReadAsync<KioskOrderDto>();
         Assert.Equal(180m, order.Order.Total);
+        Assert.Equal(DiningOption.TakeOut, order.Order.DiningOption);
     }
 
     [Fact]

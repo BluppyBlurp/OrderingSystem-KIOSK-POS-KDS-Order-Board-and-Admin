@@ -46,7 +46,7 @@ public sealed class KioskOrderService(
         var sequence = await numbers.NextAsync(businessDate, ct);
 
         var order = Order.Create(
-            OrderNumber.Format(sequence), businessDate, request.OrderType, request.TableNumber, deviceId,
+            OrderNumber.Format(sequence), businessDate, request.DiningOption, request.OrderType, request.TableNumber, deviceId,
             items, opts.VatRate, now, TimeSpan.FromMinutes(opts.PaymentWindowMinutes));
 
         db.Orders.Add(order);
@@ -142,8 +142,9 @@ public sealed class KioskOrderService(
             UnitPriceSnapshot = Money.Round(product.BasePrice + modifiers.Sum(m => m.PriceDelta)),
             Quantity = line.Quantity,
             Notes = string.IsNullOrWhiteSpace(line.Notes) ? null : line.Notes.Trim(),
-            Modifiers = modifiers.Select(m => new OrderItemModifier
+            Modifiers = modifiers.Select((m, i) => new OrderItemModifier
             {
+                SortOrder = i,
                 ModifierId = m.Id,
                 NameSnapshot = m.Name,
                 PriceDeltaSnapshot = m.PriceDelta,

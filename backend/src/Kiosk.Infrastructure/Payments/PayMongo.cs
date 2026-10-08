@@ -48,6 +48,7 @@ internal sealed class PayMongoGateway(HttpClient http, IOptions<PayMongoOptions>
         {
             PaymentMethod.EWallet => ["gcash", "paymaya"],
             PaymentMethod.Card => ["card"],
+            PaymentMethod.QrPh => ["qrph"],
             _ => throw new ArgumentOutOfRangeException(nameof(method), method, "Cash does not use the gateway."),
         };
 

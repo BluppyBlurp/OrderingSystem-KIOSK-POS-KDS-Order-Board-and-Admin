@@ -10,6 +10,7 @@ public class Order
     public string OrderNumber { get; private set; } = "";
 
     public DateOnly BusinessDate { get; private set; }
+    public DiningOption DiningOption { get; private set; }
     public OrderType Type { get; private set; }
 
     /// <summary>The physical stand number. Only for <see cref="OrderType.ServeToTable"/>.</summary>
@@ -43,6 +44,7 @@ public class Order
     public static Order Create(
         string orderNumber,
         DateOnly businessDate,
+        DiningOption diningOption,
         OrderType type,
         int? tableNumber,
         Guid? deviceId,
@@ -51,6 +53,8 @@ public class Order
         DateTimeOffset now,
         TimeSpan paymentWindow)
     {
+        if (diningOption == DiningOption.TakeOut && type != OrderType.CounterPickup)
+            throw new DomainException("takeout_is_pickup", "Take-out orders are picked up at the counter.");
         if (type == OrderType.ServeToTable && tableNumber is null)
             throw new DomainException("table_number_required", "Serve-to-table orders need a table number.");
         if (type == OrderType.CounterPickup && tableNumber is not null)
@@ -60,6 +64,7 @@ public class Order
         {
             OrderNumber = orderNumber,
             BusinessDate = businessDate,
+            DiningOption = diningOption,
             Type = type,
             TableNumber = tableNumber,
             DeviceId = deviceId,
@@ -71,8 +76,10 @@ public class Order
         if (order.Items.Count == 0)
             throw new DomainException("empty_order", "An order needs at least one item.");
 
-        foreach (var item in order.Items)
+        for (var line = 0; line < order.Items.Count; line++)
         {
+            var item = order.Items[line];
+            item.LineNumber = line;
             if (item.Quantity <= 0)
                 throw new DomainException("invalid_quantity", "Quantity must be positive.");
             if (item.UnitPriceSnapshot < 0)

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Kiosk.Api;
 using Kiosk.Api.Auth;
@@ -21,9 +22,15 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddKioskAuth(builder.Configuration);
 builder.Services.AddKioskRateLimits();
 
-builder.Services
-    .AddControllers()
-    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// Same JSON rules for controllers and for the OpenAPI generator, so the TypeScript client matches the wire format:
+// enums as strings, and numbers only as numbers (the web default also accepts "12.5" strings).
+static void ConfigureJson(JsonSerializerOptions o)
+{
+    o.Converters.Add(new JsonStringEnumConverter());
+    o.NumberHandling = JsonNumberHandling.Strict;
+}
+builder.Services.AddControllers().AddJsonOptions(o => ConfigureJson(o.JsonSerializerOptions));
+builder.Services.ConfigureHttpJsonOptions(o => ConfigureJson(o.SerializerOptions));
 builder.Services
     .AddSignalR()
     .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -45,7 +52,11 @@ var app = builder.Build();
 if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
     await using var scope = app.Services.CreateAsyncScope();
-    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
+    if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Dev:SeedDemoData"))
+        await DemoDataSeeder.SeedAsync(db, app.Configuration["Dev:KioskToken"]);
 }
 
 app.UseExceptionHandler();

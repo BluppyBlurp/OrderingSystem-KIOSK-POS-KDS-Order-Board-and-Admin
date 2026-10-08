@@ -1,0 +1,70 @@
+import { ApiError } from "@kiosk/api-client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useMenu } from "./api";
+import { Button } from "./components/ui";
+import { getDeviceToken } from "./config";
+import { useIdleReset } from "./hooks/useIdleReset";
+import { CartScreen } from "./screens/CartScreen";
+import { CheckoutScreen } from "./screens/CheckoutScreen";
+import { CustomizeScreen } from "./screens/CustomizeScreen";
+import { MenuScreen } from "./screens/MenuScreen";
+import { CashSlipScreen, OnlinePayScreen, ReceiptScreen } from "./screens/PaymentScreens";
+import { AttractScreen, DiningScreen, ServiceScreen, SetupScreen, TableScreen } from "./screens/StartScreens";
+import { useKiosk, type Screen } from "./store";
+
+/** Screens where a walk-away customer's cart should be cleared. Not during payment or on the slip/receipt. */
+const IDLE_SCREENS: Screen[] = ["dining", "service", "table", "menu", "customize", "cart", "checkout"];
+
+export function App() {
+  const { screen, reset } = useKiosk();
+  const menu = useMenu();
+  const queryClient = useQueryClient();
+  const idleModal = useIdleReset(IDLE_SCREENS.includes(screen), reset);
+
+  // Each new customer sees fresh prices and sold-out flags (SignalR MenuChanged push comes later).
+  useEffect(() => {
+    if (screen === "attract") void queryClient.invalidateQueries({ queryKey: ["menu"] });
+  }, [screen, queryClient]);
+
+  if (!getDeviceToken()) return <SetupScreen />;
+
+  if (menu.error instanceof ApiError && menu.error.status === 401) {
+    return <SetupScreen error="This kiosk's token was not accepted (revoked or mistyped). Enter a new one." />;
+  }
+
+  if (screen === "attract") return <AttractScreen />;
+
+  if (!menu.data) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-6 text-3xl font-bold">
+        {menu.isError ? (
+          <>
+            <p>We can't load the menu right now.</p>
+            <Button variant="solid" size="lg" onClick={() => menu.refetch()}>
+              Try again
+            </Button>
+          </>
+        ) : (
+          <p>Loading menu…</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {screen === "dining" && <DiningScreen />}
+      {screen === "service" && <ServiceScreen />}
+      {screen === "table" && <TableScreen />}
+      {screen === "menu" && <MenuScreen menu={menu.data} />}
+      {screen === "customize" && <CustomizeScreen menu={menu.data} />}
+      {screen === "cart" && <CartScreen />}
+      {screen === "checkout" && <CheckoutScreen />}
+      {screen === "cashSlip" && <CashSlipScreen />}
+      {screen === "onlinePay" && <OnlinePayScreen />}
+      {screen === "receipt" && <ReceiptScreen />}
+      {idleModal}
+    </>
+  );
+}

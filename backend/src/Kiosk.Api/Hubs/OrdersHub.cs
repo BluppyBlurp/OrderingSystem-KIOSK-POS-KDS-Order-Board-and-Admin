@@ -73,7 +73,7 @@ internal sealed class SignalROrderNotifier(IHubContext<OrdersHub> hub, ILogger<S
             // The public board gets only what it displays, never items or totals.
             if (order.Status is OrderStatus.Paid or OrderStatus.Preparing or OrderStatus.Ready or OrderStatus.Completed)
                 await hub.Clients.Group(HubGroups.Board).SendAsync(eventName,
-                    new { order.OrderNumber, order.Type, order.TableNumber, order.Status }, ct);
+                    new { order.OrderNumber, order.DiningOption, order.Type, order.TableNumber, order.Status }, ct);
         }
         catch (Exception ex)
         {

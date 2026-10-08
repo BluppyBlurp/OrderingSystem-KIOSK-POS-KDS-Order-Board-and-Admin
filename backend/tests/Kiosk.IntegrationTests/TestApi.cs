@@ -31,9 +31,9 @@ internal static class TestApi
     }
 
     public static Task<HttpResponseMessage> OrderAsync(this HttpClient kiosk, Guid productId, int quantity = 1,
-        OrderType type = OrderType.CounterPickup, int? table = null) =>
+        OrderType type = OrderType.CounterPickup, int? table = null, DiningOption dining = DiningOption.DineIn) =>
         kiosk.PostJsonAsync("/api/kiosk/orders",
-            new CreateOrderRequest(type, table, [new CreateOrderLine(productId, quantity, null, null)]));
+            new CreateOrderRequest(dining, type, table, [new CreateOrderLine(productId, quantity, null, null)]));
 
     public static async Task<int?> StockAsync(this KioskApiFactory api, Guid productId) =>
         (await (await api.Staff(Roles.Admin).GetAsync($"/api/admin/products/{productId}")).ReadAsync<AdminProductDto>()).Stock;

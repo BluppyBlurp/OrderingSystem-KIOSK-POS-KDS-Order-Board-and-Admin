@@ -1,6 +1,6 @@
 # Fast-Food Kiosk Ordering System — Technical Docs
 
-**Status:** Backend MVP built (90 automated tests passing); frontends not started
+**Status:** Backend MVP + kiosk app built (97 backend tests, 8 kiosk unit tests; kiosk flow verified in a browser). POS, KDS, board and admin apps not started.
 **Last updated:** 2026-10-08
 **Maintenance rule:** New or changed requirements go into `checklist.md` first, then this file is updated to match. Record every edit in §14 Change Log.
 
@@ -69,7 +69,7 @@ Replicate a McDonald's-style self-order kiosk, software only. A customer orders 
 | Docs | `Microsoft.AspNetCore.OpenApi` | Built-in OpenAPI document; source for the generated TS client |
 
 ### Frontend (all five apps)
-React 18 + TypeScript + Vite · Tailwind CSS · Zustand (cart/local UI state) · TanStack Query (server state) · `@microsoft/signalr` · `@clerk/clerk-react` (POS, KDS, Admin only) · `openapi-typescript` for a generated, typed API client.
+React 19 + TypeScript 5.9 + Vite 8 · Tailwind CSS 4 · Zustand (cart/local UI state) · TanStack Query (server state) · `@microsoft/signalr` · `@clerk/clerk-react` (POS, KDS, Admin only) · `openapi-typescript` + `openapi-fetch` for a generated, typed API client. Dependency versions are pinned exactly, choosing the newest release that is at least 14 days old. TypeScript stays on 5.x because `openapi-typescript` requires it.
 
 ### Infrastructure — locked in, all free tier
 
@@ -137,7 +137,16 @@ There are two different numbers and conflating them causes bugs. Keep them separ
 | Shown on | Slip, receipt, order board, KDS ticket | KDS ticket, server's handoff view |
 | Typed by a human | No | Yes, on the kiosk |
 
-### Order type selection (first screen after "Start Order")
+### Dine in or take out (first screen after "Touch to start")
+
+| Choice | What follows |
+|---|---|
+| **Dine in** | Order type screen below |
+| **Take out** | Straight to the menu. Take-out is always counter pickup; the API rejects take-out + serve-to-table |
+
+`Order.diningOption` (`DineIn` / `TakeOut`) is separate from `Order.type`. It goes on the receipt, the kitchen ticket and the board.
+
+### Order type selection (dine in only)
 
 | Type | Flow | Table number? |
 |---|---|---|
@@ -259,6 +268,7 @@ Kiosk auto-advances to the confirmation screen with the order number
 - Both e-wallet (GCash, Maya) and card use a PayMongo **Checkout Session**. PayMongo's hosted page handles method selection, retries and card 3DS, so the backend never builds a payment-intent flow by hand.
 - If the customer backs out on the kiosk, `POST /api/kiosk/orders/{id}/cancel-checkout` moves the order to `Failed`, and the kiosk offers Retry or Switch to cash. The payment record stays open: if they finish paying on their phone anyway, the webhook still moves the order to `Paid`.
 - Every event carries the paid amount. A mismatch with the order total is never marked `Paid`; it is flagged for a human (`OrderEvent.RefundNeeded`).
+- On the kiosk, **Pay here** offers **QR Ph** (any bank or e-wallet app: GCash, Maya, banks) and **Card**. Both open a Checkout Session; the kiosk shows a QR of the checkout page and the customer pays **on their own phone**, so nobody types card details on a public screen. A direct QR Ph image on the kiosk (Payment Intent API) is a later improvement.
 - The order goes to the kitchen automatically, **with or without a table number** — the table number only changes what the KDS ticket and the server see, not whether the order flows.
 - The kiosk never trusts a client-side "payment succeeded" redirect. The webhook is the only thing that sets `Paid`. The redirect just stops the spinner; if the webhook is slow, the kiosk polls `GET /kiosk/orders/{id}` as a fallback.
 - Failed payment → `Failed`, and the kiosk offers Retry or Switch to cash. An abandoned checkout simply expires.
@@ -289,8 +299,9 @@ StockMovement (optional, per-item stock ledger)
 | `Product` | name, description, basePrice, stock? (null = untracked), isAvailable, sortOrder, categoryId |
 | `ProductMedia` | type (Image/Video), url, thumbnailUrl, sortOrder |
 | `ModifierGroup` | name, minSelect, maxSelect, isRequired (drives "pick a size", "add-ons") |
-| `Order` | orderNumber, type (CounterPickup/ServeToTable), tableNumber?, status, subtotal, taxAmount, total, createdAt, expiresAt |
-| `OrderItem` | productId, **nameSnapshot**, **unitPriceSnapshot**, quantity, lineTotal, notes |
+| `Order` | orderNumber, diningOption (DineIn/TakeOut), type (CounterPickup/ServeToTable), tableNumber?, status, subtotal, taxAmount, total, createdAt, expiresAt |
+| `OrderItem` | lineNumber, productId, **nameSnapshot**, **unitPriceSnapshot**, quantity, lineTotal, notes |
+| `OrderItemModifier` | sortOrder (question order), modifierId, nameSnapshot, priceDeltaSnapshot |
 | `Payment` | method, provider, providerRef, status, amount, amountTendered?, changeDue?, processedByUserId? |
 | `Device` | name, kind (Kiosk/Board), tokenHash, isActive, lastSeenAt |
 
@@ -306,7 +317,7 @@ StockMovement (optional, per-item stock ledger)
 | Method | Route | Notes |
 |---|---|---|
 | GET | `/api/kiosk/menu` | Categories, products, modifiers, availability |
-| POST | `/api/kiosk/orders` | `{items[], orderType, tableNumber?}` → order id, order number, totals, `expiresAt` |
+| POST | `/api/kiosk/orders` | `{diningOption, orderType, tableNumber?, items[]}` → order id, order number, totals, `expiresAt` |
 | POST | `/api/kiosk/orders/{id}/pay` | `{method}` → cash slip (QR token) or checkout URL. Allowed from `Created` or `Failed` |
 | POST | `/api/kiosk/orders/{id}/cancel-checkout` | Customer backed out of the online checkout → `Failed` |
 | GET | `/api/kiosk/orders/{id}` | Status poll fallback. Only orders this kiosk created; others return 404 |
@@ -335,6 +346,9 @@ CRUD `/api/admin/categories` · `/products` · `/modifier-groups` · `/modifiers
 
 ### Webhooks — anonymous, signature-verified
 `POST /api/webhooks/paymongo`
+
+### Dev only: Development environment + PayMongo stub, else 404
+`POST /api/dev/orders/{id}/simulate-payment` (kiosk token). Completes a stubbed online payment through the same webhook service. It is hidden from OpenAPI.
 
 ### SignalR `/hubs/orders`
 **Groups:** `kitchen`, `pos`, `board`, `kiosks`, `kiosk-{orderId}`. Groups are assigned from the caller's identity on connect. A kiosk joins `kiosk-{orderId}` by calling `WatchOrder(orderId)`, and only for orders it created.
@@ -375,10 +389,10 @@ kiosk-system/
 │   └── tests/
 │       ├── Kiosk.UnitTests/
 │       └── Kiosk.IntegrationTests/
-└── frontend/                    # pnpm workspace
+└── frontend/                    # pnpm workspace (built so far: apps/kiosk, packages/api-client)
     ├── apps/{kiosk,pos,kds,board,admin}/
     └── packages/
-        ├── api-client/          # generated from OpenAPI
+        ├── api-client/          # openapi.json snapshot + generated types + openapi-fetch client
         ├── realtime/            # SignalR hook wrapper
         └── ui/                  # shared Tailwind components
 ```
@@ -419,10 +433,14 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 
 ## 12. Kiosk UX Rules
 
-- **Attract screen** loops promo media; any touch starts an order.
+- **Flow:** Touch to start → Dine in / Take out → (dine in) Pick up at counter / Serve to my table → table number keypad (grab a stand first) → menu → product questions → cart → Pay at counter / Pay here (QR Ph, Card) → slip or receipt.
+- **Product questions, one per screen,** in the order the manager set on the product's modifier groups. A **meal** asks: drink → upsize drink → upsize fries → fries flavor → anything to add. **À la carte** asks: add a drink → add a side → anything to add. Then comes quantity + "Add to cart". Required single-choice questions whose first option is free are pre-answered (e.g. Regular fries). Option names describe themselves ("Large fries", not "Large") because receipts and kitchen tickets show them without the question.
+- **Printing:** the cash slip (order number + QR for the cashier) and the paid receipt print through `window.print()` with an 80 mm layout. Run Chrome with `--kiosk --kiosk-printing` so it prints silently to the default (thermal) printer, with no driver code in the app.
+- **Attract screen** loops promo media (black-and-white shapes for now); any touch starts an order.
 - **Idle reset**: 60s of inactivity → "Still there?" modal → 15s → cart cleared, back to attract. Prevents the next customer inheriting a stranger's cart.
 - **Touch targets ≥ 48px**, image-first product tiles, no scrolling text walls.
-- **Menu is fully data-driven.** A price or stock change in Admin pushes `MenuChanged` over SignalR and the kiosk updates without a redeploy or restart.
+- **Menu is fully data-driven.** A price or stock change in Admin pushes `MenuChanged` over SignalR, and the kiosk updates without a redeploy or restart. *(For now, the kiosk refetches the menu at the start of every order.)*
+- **Demo data (Development only):** `Dev:SeedDemoData` seeds Rice Meals, Sandwiches, Pasta, Sides, Drinks and Desserts, plus a kiosk device whose token is `Dev:KioskToken`. The kiosk app's `.env.development` uses the same token.
 - **Sold-out items** grey out in place rather than disappearing — a vanishing tile confuses people mid-order.
 - **Service worker** caches the menu and images so a brief network drop does not blank the screen; order submission still requires connectivity and shows a clear retry.
 - **Product videos** play muted and looped on the detail view only, never autoplay across the grid.
@@ -452,3 +470,4 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 | 2026-10-08 | Infrastructure locked in: Neon (Postgres), Cloudflare R2 (images + video), Clerk, Cloudflare Pages, Fly.io. Added §3.1 Neon vs Supabase, §3.2 R2 vs Cloudinary, Clerk independence note in §11. |
 | 2026-10-08 | Design fixes before build: .NET 10 LTS (not 8); stock reserved at creation, released on expiry/cancel; one create → pay flow for all methods; every pre-Paid state expires; Failed can retry or switch to cash; late webhooks on expired orders flagged for refund; KDS lists Ready; Board accepts staff roles. |
 | 2026-10-08 | Backend MVP built (Clean Architecture: Domain / Application / Infrastructure / Api with MVC controllers). Local dev moved off Docker to portable Postgres on port 5433. PayMongo Checkout Sessions for e-wallet **and** card. Added `cancel-checkout`, `tables/{n}`, reorder and device-revoke endpoints; documented the SignalR event set, Clerk setup steps and policy names. No order-number reset job needed. |
+| 2026-10-08 | Kiosk app built (React 19, black-and-white placeholder design). Added **dine in / take out** (`Order.diningOption`), **QR Ph** payment method, one-question-per-screen product customization, browser printing for slip and receipt, a Development-only demo menu and simulated payment. Fixed: item and modifier order is now stored (`OrderItem.lineNumber`, `OrderItemModifier.sortOrder`). |

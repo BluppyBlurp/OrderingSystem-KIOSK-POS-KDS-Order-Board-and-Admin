@@ -16,6 +16,7 @@ public sealed record OrderItemDto(
 public sealed record OrderDto(
     Guid Id,
     string OrderNumber,
+    DiningOption DiningOption,
     OrderType Type,
     int? TableNumber,
     OrderStatus Status,
@@ -29,12 +30,12 @@ public sealed record OrderDto(
     IReadOnlyList<OrderItemDto> Items)
 {
     public static OrderDto From(Order o) => new(
-        o.Id, o.OrderNumber, o.Type, o.TableNumber, o.Status,
+        o.Id, o.OrderNumber, o.DiningOption, o.Type, o.TableNumber, o.Status,
         o.Subtotal, o.TaxAmount, o.Total, o.PaymentMethod,
         o.CreatedAt, o.ExpiresAt, o.PaidAt,
-        o.Items.Select(i => new OrderItemDto(
+        o.Items.OrderBy(i => i.LineNumber).Select(i => new OrderItemDto(
             i.ProductId, i.NameSnapshot, i.Quantity, i.UnitPriceSnapshot, i.LineTotal, i.Notes,
-            i.Modifiers.Select(m => new OrderItemModifierDto(m.NameSnapshot, m.PriceDeltaSnapshot)).ToList())).ToList());
+            i.Modifiers.OrderBy(m => m.SortOrder).Select(m => new OrderItemModifierDto(m.NameSnapshot, m.PriceDeltaSnapshot)).ToList())).ToList());
 }
 
 /// <summary>What the kiosk needs to show after paying: the cash slip QR token or the checkout URL.</summary>
@@ -43,7 +44,7 @@ public sealed record KioskOrderDto(OrderDto Order, string? SlipToken, string? Ch
 public sealed record CreateOrderLine(Guid ProductId, int Quantity, IReadOnlyList<Guid>? ModifierIds, string? Notes);
 
 /// <summary>The kiosk never sends prices or totals; the server computes them.</summary>
-public sealed record CreateOrderRequest(OrderType OrderType, int? TableNumber, IReadOnlyList<CreateOrderLine> Items);
+public sealed record CreateOrderRequest(DiningOption DiningOption, OrderType OrderType, int? TableNumber, IReadOnlyList<CreateOrderLine> Items);
 
 public sealed record PayRequest(PaymentMethod Method);
 

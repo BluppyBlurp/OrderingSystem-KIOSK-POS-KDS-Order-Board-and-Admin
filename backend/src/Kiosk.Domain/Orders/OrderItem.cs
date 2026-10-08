@@ -5,6 +5,10 @@ public class OrderItem
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OrderId { get; set; }
+
+    /// <summary>Position in the cart (0-based); receipts and kitchen tickets list items in this order.</summary>
+    public int LineNumber { get; set; }
+
     public Guid ProductId { get; set; }
     public required string NameSnapshot { get; set; }
 
@@ -21,6 +25,10 @@ public class OrderItemModifier
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid OrderItemId { get; set; }
+
+    /// <summary>Question order (drink, drink size, fries size, …) so tickets read the same way the kiosk asked.</summary>
+    public int SortOrder { get; set; }
+
     public Guid ModifierId { get; set; }
     public required string NameSnapshot { get; set; }
     public decimal PriceDeltaSnapshot { get; set; }

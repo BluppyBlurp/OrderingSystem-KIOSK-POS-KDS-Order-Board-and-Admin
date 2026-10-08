@@ -285,6 +285,11 @@ namespace Kiosk.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("DeviceId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("DiningOption")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -394,6 +399,9 @@ namespace Kiosk.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("LineTotal")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
@@ -446,6 +454,9 @@ namespace Kiosk.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("PriceDeltaSnapshot")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
