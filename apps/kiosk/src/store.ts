@@ -14,6 +14,7 @@ export type Screen =
   | "menu"
   | "customize"
   | "cart"
+  | "upsell" // "anything else?" once, between cart and checkout
   | "checkout"
   | "cashSlip" // pay at counter: slip with QR + number (printed)
   | "onlinePay" // QR Ph / card: scan with phone, wait for payment
@@ -26,6 +27,9 @@ interface KioskState {
   tableNumber: number | null;
   cart: CartLine[];
   customizingProductId: string | null;
+  /** Where the product questions return to: the menu, or the upsell prompt. */
+  customizeReturn: Screen;
+  upsellShown: boolean;
   activeCategoryId: string | null;
   placedOrder: KioskOrder | null;
 
@@ -34,7 +38,9 @@ interface KioskState {
   chooseService: (type: OrderType) => void;
   setTable: (table: number) => void;
   setCategory: (id: string) => void;
-  customize: (productId: string) => void;
+  customize: (productId: string, returnTo?: Screen) => void;
+  closeCustomize: () => void;
+  checkout: (hasUpsell: boolean) => void;
   addToCart: (line: CartLine) => void;
   setLineQuantity: (key: string, quantity: number) => void;
   setPlacedOrder: (order: KioskOrder, screen: Screen) => void;
@@ -48,6 +54,8 @@ const initial = {
   tableNumber: null,
   cart: [],
   customizingProductId: null,
+  customizeReturn: "menu" as Screen,
+  upsellShown: false,
   activeCategoryId: null,
   placedOrder: null,
 };
@@ -66,8 +74,13 @@ export const useKiosk = create<KioskState>((set) => ({
     set(orderType === "ServeToTable" ? { orderType, screen: "table" } : { orderType, tableNumber: null, screen: "menu" }),
   setTable: (tableNumber) => set({ tableNumber, screen: "menu" }),
   setCategory: (activeCategoryId) => set({ activeCategoryId }),
-  customize: (customizingProductId) => set({ customizingProductId, screen: "customize" }),
-  addToCart: (line) => set((s) => ({ cart: [...s.cart, line], customizingProductId: null, screen: "menu" })),
+  customize: (customizingProductId, customizeReturn = "menu") =>
+    set({ customizingProductId, customizeReturn, screen: "customize" }),
+  closeCustomize: () => set((s) => ({ customizingProductId: null, screen: s.customizeReturn })),
+  addToCart: (line) => set((s) => ({ cart: [...s.cart, line], customizingProductId: null, screen: s.customizeReturn })),
+  // The upsell prompt is asked once per order, so "No thanks" is never repeated.
+  checkout: (hasUpsell) =>
+    set((s) => (hasUpsell && !s.upsellShown ? { screen: "upsell", upsellShown: true } : { screen: "checkout" })),
   setLineQuantity: (key, quantity) => set((s) => ({ cart: setQuantity(s.cart, key, quantity) })),
   setPlacedOrder: (placedOrder, screen) => set({ placedOrder, screen }),
   reset: () => set({ ...initial }),

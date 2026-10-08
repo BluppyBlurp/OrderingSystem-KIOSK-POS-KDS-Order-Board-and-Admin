@@ -10,17 +10,17 @@ import { useKiosk } from "../store";
  * fries flavor → add-ons), then a final quantity + summary step with "Add to cart".
  */
 export function CustomizeScreen({ menu }: { menu: Menu }) {
-  const { customizingProductId, addToCart, go } = useKiosk();
+  const { customizingProductId, addToCart, closeCustomize } = useKiosk();
   const category = menu.categories.find((c) => c.products.some((p) => p.id === customizingProductId));
   const product = category?.products.find((p) => p.id === customizingProductId);
 
   // The product vanished from the menu (e.g. removed by a manager mid-order): back to the menu.
   useEffect(() => {
-    if (!product) go("menu");
-  }, [product, go]);
+    if (!product) closeCustomize();
+  }, [product, closeCustomize]);
 
   if (!product || !category) return null;
-  return <Wizard key={product.id} product={product} categoryName={category.name} onAdd={addToCart} onCancel={() => go("menu")} />;
+  return <Wizard key={product.id} product={product} categoryName={category.name} onAdd={addToCart} onCancel={closeCustomize} />;
 }
 
 function Wizard({

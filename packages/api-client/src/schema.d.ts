@@ -236,6 +236,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pos/orders/{id}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pdf": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pos/shift-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    since?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ShiftSummaryDto"];
+                        "application/json": components["schemas"]["ShiftSummaryDto"];
+                        "text/json": components["schemas"]["ShiftSummaryDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/kiosk/menu": {
         parameters: {
             query?: never;
@@ -427,6 +503,43 @@ export interface paths {
                         "text/plain": components["schemas"]["KioskOrderDto"];
                         "application/json": components["schemas"]["KioskOrderDto"];
                         "text/json": components["schemas"]["KioskOrderDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/kiosk/orders/{id}/slip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pdf": unknown;
                     };
                 };
             };
@@ -1217,6 +1330,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/products/{id}/media/uploaded": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CompleteMediaUploadRequest"];
+                    "text/json": components["schemas"]["CompleteMediaUploadRequest"];
+                    "application/*+json": components["schemas"]["CompleteMediaUploadRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["MediaDto"];
+                        "application/json": components["schemas"]["MediaDto"];
+                        "text/json": components["schemas"]["MediaDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/products/{id}/media": {
         parameters: {
             query?: never;
@@ -1537,6 +1695,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/media/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PresignMediaRequest"];
+                    "text/json": components["schemas"]["PresignMediaRequest"];
+                    "application/*+json": components["schemas"]["PresignMediaRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["PresignedUploadDto"];
+                        "application/json": components["schemas"]["PresignedUploadDto"];
+                        "text/json": components["schemas"]["PresignedUploadDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["SalesReportDto"];
+                        "application/json": components["schemas"]["SalesReportDto"];
+                        "text/json": components["schemas"]["SalesReportDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports/refunds-needed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["RefundNeededDto"][];
+                        "application/json": components["schemas"]["RefundNeededDto"][];
+                        "text/json": components["schemas"]["RefundNeededDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1586,6 +1864,12 @@ export interface components {
             /** Format: double */
             changeDue: number;
         };
+        CashTotalsDto: {
+            /** Format: int32 */
+            orders: number;
+            /** Format: double */
+            cashCollected: number;
+        };
         CategoryDto: {
             /** Format: uuid */
             id: string;
@@ -1595,6 +1879,12 @@ export interface components {
             isActive: boolean;
             /** Format: int32 */
             productCount: number;
+        };
+        CompleteMediaUploadRequest: {
+            key: string;
+            type: components["schemas"]["MediaType"];
+            /** Format: int32 */
+            sortOrder: number;
         };
         ConfirmCashRequest: {
             /** Format: double */
@@ -1614,6 +1904,14 @@ export interface components {
             /** Format: int32 */
             tableNumber: null | number;
             items: components["schemas"]["CreateOrderLine"][];
+        };
+        DailySalesDto: {
+            /** Format: date */
+            date: string;
+            /** Format: int32 */
+            orders: number;
+            /** Format: double */
+            sales: number;
         };
         DeviceDto: {
             /** Format: uuid */
@@ -1752,8 +2050,54 @@ export interface components {
         OrderType: "CounterPickup" | "ServeToTable";
         /** @enum {unknown} */
         PaymentMethod: "Cash" | "EWallet" | "Card" | "QrPh" | null;
+        PaymentMethodSalesDto: {
+            method: components["schemas"]["PaymentMethod"];
+            /** Format: int32 */
+            orders: number;
+            /** Format: double */
+            sales: number;
+        };
         PayRequest: {
             method: components["schemas"]["PaymentMethod"];
+        };
+        PresignedUploadDto: {
+            key: string;
+            uploadUrl: string;
+            contentType: string;
+            /** Format: int64 */
+            maxBytes: number;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        PresignMediaRequest: {
+            type: components["schemas"]["MediaType"];
+            contentType: string;
+            /** Format: int64 */
+            sizeBytes: number;
+        };
+        ProductSalesDto: {
+            /** Format: uuid */
+            productId: string;
+            name: string;
+            /** Format: int32 */
+            quantity: number;
+            /** Format: double */
+            sales: number;
+        };
+        RefundNeededDto: {
+            /** Format: int64 */
+            eventId: number;
+            /** Format: uuid */
+            orderId: string;
+            orderNumber: string;
+            /** Format: date */
+            businessDate: string;
+            orderStatus: components["schemas"]["OrderStatus"];
+            /** Format: double */
+            orderTotal: number;
+            /** Format: date-time */
+            at: string;
+            note: null | string;
         };
         RegisterDeviceRequest: {
             name: string;
@@ -1766,12 +2110,43 @@ export interface components {
         ReorderRequest: {
             ids: string[];
         };
+        SalesReportDto: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            orders: number;
+            /** Format: double */
+            grossSales: number;
+            /** Format: double */
+            vatAmount: number;
+            /** Format: double */
+            netOfVat: number;
+            /** Format: double */
+            averageOrder: number;
+            byPaymentMethod: components["schemas"]["PaymentMethodSalesDto"][];
+            byDay: components["schemas"]["DailySalesDto"][];
+            topProducts: components["schemas"]["ProductSalesDto"][];
+            /** Format: int32 */
+            refundsNeeded: number;
+        };
         SetAvailabilityRequest: {
             isAvailable: boolean;
         };
         SetStockRequest: {
             /** Format: int32 */
             stock: null | number;
+        };
+        ShiftSummaryDto: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            mine: components["schemas"]["CashTotalsDto"];
+            allCashiers: components["schemas"]["CashTotalsDto"];
+            /** Format: int32 */
+            cancelledByMe: number;
         };
         TableStatusDto: {
             /** Format: int32 */

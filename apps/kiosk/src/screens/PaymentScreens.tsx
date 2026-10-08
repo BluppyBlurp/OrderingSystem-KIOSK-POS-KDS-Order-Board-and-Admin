@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import { cancelCheckout, getOrder, payOrder, simulatePayment, type KioskOrder } from "../api";
@@ -6,6 +6,7 @@ import { PrintableReceipt, usePrintOnce } from "../components/Receipt";
 import { Button, Modal, money, Screen } from "../components/ui";
 import { config } from "../config";
 import { useAutoReturn } from "../hooks/useIdleReset";
+import { useWatchOrder } from "../realtime";
 import { useKiosk } from "../store";
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -58,11 +59,14 @@ export function CashSlipScreen() {
 /** QR Ph / card: the customer scans with their phone and pays on PayMongo's page; the webhook marks it Paid. */
 export function OnlinePayScreen() {
   const { placedOrder, setPlacedOrder, reset } = useKiosk();
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const orderId = placedOrder?.order.id;
+  useWatchOrder(orderId);
 
-  // Polling is the fallback the docs call for; the webhook is still the only thing that sets Paid.
+  // Realtime pushes refresh this query at once; polling is the fallback the docs call for.
+  // Either way the webhook is the only thing that sets Paid.
   const { data: latest } = useQuery({
     queryKey: ["order", orderId],
     queryFn: () => getOrder(orderId!),
@@ -77,20 +81,31 @@ export function OnlinePayScreen() {
 
   if (!placedOrder) return null;
   const { order, checkoutUrl } = placedOrder;
-  const methodLabel = order.paymentMethod === "Card" ? "card" : "QR Ph (GCash, Maya or your bank app)";
+  const method = order.paymentMethod === "Card" ? "Card" : "QrPh";
+  const methodLabel = method === "Card" ? "card" : "QR Ph (GCash, Maya or your bank app)";
 
-  const switchToCash = async () => {
+  const run = async (action: () => Promise<KioskOrder>, screen: "onlinePay" | "cashSlip") => {
     setBusy(true);
     setError(null);
     try {
-      await cancelCheckout(order.id);
-      setPlacedOrder(await payOrder(order.id, "Cash"), "cashSlip");
+      const next = await action();
+      queryClient.setQueryData(["order", next.order.id], next); // don't flash the old status until the next poll
+      setPlacedOrder(next, screen);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setBusy(false);
     }
   };
+
+  // From an open checkout the API needs the cancel first; a failed payment can switch straight to cash.
+  const switchToCash = () =>
+    run(async () => {
+      if (status === "PaymentPending") await cancelCheckout(order.id);
+      return payOrder(order.id, "Cash");
+    }, "cashSlip");
+  const retry = () => run(() => payOrder(order.id, method), "onlinePay");
+  const backOut = () => run(() => cancelCheckout(order.id), "onlinePay");
 
   if (status === "Expired" || status === "Cancelled") {
     return (
@@ -104,18 +119,51 @@ export function OnlinePayScreen() {
     );
   }
 
+  if (status === "Failed") {
+    return (
+      <Screen>
+        <div className="flex flex-col items-center gap-6 p-10 text-center">
+          <p className="text-4xl font-black uppercase">The payment didn't go through</p>
+          <p className="text-2xl">
+            {method === "Card"
+              ? "Your card may have been declined. You can try again, use another card, or pay at the counter."
+              : "You can try again or pay at the counter."}
+          </p>
+          <p className="text-xl">Nothing has been charged. Order {order.orderNumber} is kept until {time(order.expiresAt)}.</p>
+          <div className="grid w-full max-w-3xl grid-cols-2 gap-6">
+            <Button size="xl" disabled={busy} onClick={retry}>
+              Try again
+              <span className="block text-xl normal-case">{method === "Card" ? "Card" : "QR Ph"}</span>
+            </Button>
+            <Button variant="solid" size="xl" disabled={busy} onClick={switchToCash}>
+              Pay at counter
+              <span className="block text-xl normal-case">Cash</span>
+            </Button>
+          </div>
+          {error && <p className="border-4 border-black p-3 text-xl font-bold">{error}</p>}
+          <Button variant="ghost" disabled={busy} onClick={reset}>
+            Start over
+          </Button>
+        </div>
+      </Screen>
+    );
+  }
+
   return (
     <Screen
       footer={
         <div className="flex items-center justify-between gap-4">
-          <Button size="lg" disabled={busy} onClick={switchToCash}>
-            Pay at counter instead
+          <Button size="lg" disabled={busy} onClick={backOut}>
+            Cancel payment
           </Button>
           {config.isDev && (
             <Button size="lg" disabled={busy} onClick={() => simulatePayment(order.id).catch((e: Error) => setError(e.message))}>
               Simulate payment (dev)
             </Button>
           )}
+          <Button size="lg" disabled={busy} onClick={switchToCash}>
+            Pay at counter instead
+          </Button>
         </div>
       }
     >

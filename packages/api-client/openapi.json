@@ -230,6 +230,71 @@
         }
       }
     },
+    "/api/pos/orders/{id}/receipt": {
+      "get": {
+        "tags": [
+          "Pos"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/pos/shift-summary": {
+      "get": {
+        "tags": [
+          "PosShift"
+        ],
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftSummaryDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftSummaryDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/kiosk/menu": {
       "get": {
         "tags": [
@@ -443,6 +508,32 @@
                   "$ref": "#/components/schemas/KioskOrderDto"
                 }
               }
+            }
+          }
+        }
+      }
+    },
+    "/api/kiosk/orders/{id}/slip": {
+      "get": {
+        "tags": [
+          "Kiosk"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {}
             }
           }
         }
@@ -1347,6 +1438,66 @@
         }
       }
     },
+    "/api/admin/products/{id}/media/uploaded": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteMediaUploadRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteMediaUploadRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteMediaUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/products/{id}/media": {
       "post": {
         "tags": [
@@ -1763,6 +1914,140 @@
           }
         }
       }
+    },
+    "/api/admin/media/presign": {
+      "post": {
+        "tags": [
+          "Media"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignMediaRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignMediaRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignMediaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresignedUploadDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresignedUploadDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresignedUploadDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reports/sales": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesReportDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesReportDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reports/refunds-needed": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RefundNeededDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RefundNeededDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RefundNeededDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1939,6 +2224,23 @@
           }
         }
       },
+      "CashTotalsDto": {
+        "required": [
+          "orders",
+          "cashCollected"
+        ],
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cashCollected": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "CategoryDto": {
         "required": [
           "id",
@@ -1964,6 +2266,26 @@
             "type": "boolean"
           },
           "productCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CompleteMediaUploadRequest": {
+        "required": [
+          "key",
+          "type",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/MediaType"
+          },
+          "sortOrder": {
             "type": "integer",
             "format": "int32"
           }
@@ -2043,6 +2365,28 @@
             "items": {
               "$ref": "#/components/schemas/CreateOrderLine"
             }
+          }
+        }
+      },
+      "DailySalesDto": {
+        "required": [
+          "date",
+          "orders",
+          "sales"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "orders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sales": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -2542,6 +2886,27 @@
           null
         ]
       },
+      "PaymentMethodSalesDto": {
+        "required": [
+          "method",
+          "orders",
+          "sales"
+        ],
+        "type": "object",
+        "properties": {
+          "method": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          },
+          "orders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sales": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "PayRequest": {
         "required": [
           "method"
@@ -2550,6 +2915,128 @@
         "properties": {
           "method": {
             "$ref": "#/components/schemas/PaymentMethod"
+          }
+        }
+      },
+      "PresignedUploadDto": {
+        "required": [
+          "key",
+          "uploadUrl",
+          "contentType",
+          "maxBytes",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "uploadUrl": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "maxBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PresignMediaRequest": {
+        "required": [
+          "type",
+          "contentType",
+          "sizeBytes"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/MediaType"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ProductSalesDto": {
+        "required": [
+          "productId",
+          "name",
+          "quantity",
+          "sales"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sales": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "RefundNeededDto": {
+        "required": [
+          "eventId",
+          "orderId",
+          "orderNumber",
+          "businessDate",
+          "orderStatus",
+          "orderTotal",
+          "at",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderNumber": {
+            "type": "string"
+          },
+          "businessDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "orderStatus": {
+            "$ref": "#/components/schemas/OrderStatus"
+          },
+          "orderTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2598,6 +3085,74 @@
           }
         }
       },
+      "SalesReportDto": {
+        "required": [
+          "from",
+          "to",
+          "orders",
+          "grossSales",
+          "vatAmount",
+          "netOfVat",
+          "averageOrder",
+          "byPaymentMethod",
+          "byDay",
+          "topProducts",
+          "refundsNeeded"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "orders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "grossSales": {
+            "type": "number",
+            "format": "double"
+          },
+          "vatAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "netOfVat": {
+            "type": "number",
+            "format": "double"
+          },
+          "averageOrder": {
+            "type": "number",
+            "format": "double"
+          },
+          "byPaymentMethod": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentMethodSalesDto"
+            }
+          },
+          "byDay": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailySalesDto"
+            }
+          },
+          "topProducts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductSalesDto"
+            }
+          },
+          "refundsNeeded": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "SetAvailabilityRequest": {
         "required": [
           "isAvailable"
@@ -2620,6 +3175,36 @@
               "null",
               "integer"
             ],
+            "format": "int32"
+          }
+        }
+      },
+      "ShiftSummaryDto": {
+        "required": [
+          "from",
+          "to",
+          "mine",
+          "allCashiers",
+          "cancelledByMe"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mine": {
+            "$ref": "#/components/schemas/CashTotalsDto"
+          },
+          "allCashiers": {
+            "$ref": "#/components/schemas/CashTotalsDto"
+          },
+          "cancelledByMe": {
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -2779,6 +3364,9 @@
       "name": "Pos"
     },
     {
+      "name": "PosShift"
+    },
+    {
       "name": "Kiosk"
     },
     {
@@ -2798,6 +3386,12 @@
     },
     {
       "name": "ModifierGroups"
+    },
+    {
+      "name": "Media"
+    },
+    {
+      "name": "Reports"
     }
   ]
 }

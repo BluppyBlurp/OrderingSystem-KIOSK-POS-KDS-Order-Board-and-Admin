@@ -4,7 +4,11 @@ Frontend only. The API lives on the `main` branch.
 Design: `docs.md` on `main` (§5 order types, §7 payments, §12 kiosk UX).
 
 Flow: Touch to start → Dine in / Take out → (dine in) counter pickup or table number → menu →
-one question per screen → cart → Pay at counter (printed slip) or Pay here (QR Ph / card) → printed receipt.
+one question per screen → cart → "Anything else?" (once) → Pay at counter (printed slip) or Pay here (QR Ph / card) → printed receipt.
+
+Live: SignalR `MenuChanged` updates prices and SOLD OUT mid-order; the payment screen watches its order and also polls.
+Offline: production builds register `public/sw.js`, which serves the cached menu, images and app if the network drops
+(orders still need the network). Bump `VERSION` in `sw.js` to drop old caches.
 
 ## Run locally
 

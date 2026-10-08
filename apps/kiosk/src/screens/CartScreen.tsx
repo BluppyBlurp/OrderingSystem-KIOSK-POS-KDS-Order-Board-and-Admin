@@ -1,10 +1,12 @@
+import type { Menu } from "../api";
 import { Button, delta, money, Screen } from "../components/ui";
 import { cartTotal, lineTotal, MAX_QUANTITY } from "../lib/cart";
+import { suggestUpsells } from "../lib/upsell";
 import { useKiosk } from "../store";
 import { OrderSummaryBadge } from "./MenuScreen";
 
-export function CartScreen() {
-  const { cart, setLineQuantity, go } = useKiosk();
+export function CartScreen({ menu }: { menu: Menu }) {
+  const { cart, setLineQuantity, go, checkout } = useKiosk();
 
   return (
     <Screen
@@ -16,7 +18,7 @@ export function CartScreen() {
             Add more
           </Button>
           <OrderSummaryBadge />
-          <Button variant="solid" size="lg" className="min-w-80" disabled={cart.length === 0} onClick={() => go("checkout")}>
+          <Button variant="solid" size="lg" className="min-w-80" disabled={cart.length === 0} onClick={() => checkout(suggestUpsells(menu, cart).length > 0)}>
             Checkout · {money(cartTotal(cart))}
           </Button>
         </div>

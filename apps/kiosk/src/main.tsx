@@ -15,3 +15,10 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+// Production only: in development a cached app shell would hide fresh code.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((e: unknown) => console.warn("Service worker not registered", e));
+  });
+}
