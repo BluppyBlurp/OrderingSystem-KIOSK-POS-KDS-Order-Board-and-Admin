@@ -3,6 +3,9 @@
 Frontend only. The API lives on the `main` branch (see `docs.md` there).
 
 - **Job:** Scan the customer's slip QR (or type the order number), take cash, confirm payment, print the receipt, void unpaid orders.
+- **Shift:** the header's **Shift** button shows the cash this cashier took (and the whole counter's) since their shift
+  started, plus their voids, and prints an 80 mm slip for the drawer count. **Start new shift** saves the start on this
+  till; without one (or after 16 hours) it counts from the start of today.
 - **Auth:** Clerk sign-in (`cashier`, `manager`, `admin`)
 - **API:** `/api/pos/*`, SignalR group `pos`
 

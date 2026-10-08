@@ -1,11 +1,12 @@
 import { ApiError } from "@kiosk/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { PENDING_KEY, setTokenSource, usePendingOrders, type Order } from "./api";
+import { PENDING_KEY, setTokenSource, SHIFT_KEY, usePendingOrders, type Order } from "./api";
 import { useSession } from "./auth";
 import { OrderPanel } from "./components/OrderPanel";
 import { PendingList } from "./components/PendingList";
 import { ScanBox } from "./components/ScanBox";
+import { ShiftSummaryPanel } from "./components/ShiftSummary";
 import { Button } from "./components/ui";
 import { POS_ROLES } from "./config";
 import { usePosHub } from "./realtime";
@@ -30,8 +31,13 @@ function PosScreen() {
   const queryClient = useQueryClient();
   const pending = usePendingOrders();
   const [selected, setSelected] = useState<Order | null>(null);
+  const [showShift, setShowShift] = useState(false);
 
-  const refresh = useCallback(() => void queryClient.invalidateQueries({ queryKey: PENDING_KEY }), [queryClient]);
+  // Any payment or void (here or at another till) changes both the queue and the shift totals.
+  const refresh = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: PENDING_KEY });
+    void queryClient.invalidateQueries({ queryKey: SHIFT_KEY });
+  }, [queryClient]);
   const hub = usePosHub(session.getToken, refresh);
 
   // Signed in with Clerk, but the API didn't see a POS role: the role claim isn't in the session token yet.
@@ -58,6 +64,7 @@ function PosScreen() {
             {hub === "live" ? "Live" : hub === "connecting" ? "Connecting…" : "Offline (refreshing every 15 s)"}
           </span>
           <span className="font-bold">{session.name}</span>
+          <Button onClick={() => setShowShift(true)}>Shift</Button>
           <Button onClick={session.signOut}>Sign out</Button>
         </div>
       </header>
@@ -89,6 +96,7 @@ function PosScreen() {
           )}
         </main>
       </div>
+      {showShift && <ShiftSummaryPanel cashier={session.name} onClose={() => setShowShift(false)} />}
     </div>
   );
 }

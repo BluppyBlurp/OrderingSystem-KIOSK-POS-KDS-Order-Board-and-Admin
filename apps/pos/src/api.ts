@@ -33,3 +33,17 @@ export const confirmCash = (id: string, amountTendered: number) =>
 
 export const cancelOrder = (id: string, reason: string) =>
   unwrap(api.POST("/api/pos/orders/{id}/cancel", { params: { path: { id } }, body: { reason } }));
+
+export type ShiftSummary = Schemas["ShiftSummaryDto"];
+
+export const SHIFT_KEY = ["pos", "shift"];
+
+/** Cash taken since the shift started (`since`; the API defaults to the start of today). */
+export function useShiftSummary(since: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: [...SHIFT_KEY, since],
+    queryFn: () => unwrap(api.GET("/api/pos/shift-summary", { params: { query: since ? { since } : {} } })),
+    enabled,
+    staleTime: 0,
+  });
+}
