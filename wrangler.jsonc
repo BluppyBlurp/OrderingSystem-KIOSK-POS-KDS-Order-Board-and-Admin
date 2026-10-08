@@ -1,0 +1,11 @@
+// Cloudflare Workers static-assets deploy for the kiosk (used when the project is a Worker, not a Pages project).
+// Build first (`pnpm --filter @kiosk/kiosk build`), then `npx wrangler deploy` uploads apps/kiosk/dist.
+{
+  "name": "kiosk",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./apps/kiosk/dist",
+    // Single-page app: unknown paths serve index.html.
+    "not_found_handling": "single-page-application"
+  }
+}

@@ -30,19 +30,31 @@ pnpm test; pnpm typecheck; pnpm build
 `packages/api-client/openapi.json` is a snapshot of the API's OpenAPI document. After the API changes on `main`,
 run `pnpm gen:api` with the API running to refresh it and the generated types, then commit both.
 
-## Deploy: Cloudflare Pages
+## Deploy: Cloudflare
+
+Both Cloudflare project types work. Pick whichever the dashboard created.
+
+**Worker** (the default under Workers & Pages → Create; it has a *Deploy command* and no output directory):
+
+| Setting | Value |
+|---|---|
+| Branch | `frontend/kiosk` |
+| Build command | `npx --yes pnpm@10.26.1 install --frozen-lockfile && npx --yes pnpm@10.26.1 --filter @kiosk/kiosk build` |
+| Deploy command | `npx wrangler deploy` (uploads `apps/kiosk/dist`, as set in `wrangler.jsonc`) |
+| Build variables (Settings → Build → Variables and secrets) | `VITE_API_URL` = the Render API URL, `NODE_VERSION` = `22` |
+
+`VITE_API_URL` must be a **build** variable: Vite bakes it into the files at build time, so a runtime Worker variable has no effect.
+
+**Pages project** (Create → Pages → Import an existing Git repository):
 
 | Setting | Value |
 |---|---|
 | Production branch | `frontend/kiosk` |
-| Build command | `npx --yes pnpm@10.26.1 install --frozen-lockfile && npx --yes pnpm@10.26.1 --filter @kiosk/kiosk build` |
+| Build command | same as above |
 | Build output directory | `apps/kiosk/dist` |
-| Environment variables | `VITE_API_URL` = the Render API URL (e.g. `https://<service>.onrender.com`), `NODE_VERSION` = `22` |
+| Environment variables | `VITE_API_URL` = the Render API URL, `NODE_VERSION` = `22` |
 
-The build command fetches pnpm itself because Cloudflare's build image doesn't always have it ("No preset version installed for command pnpm"). `VITE_API_URL` must have no trailing slash.
-
-The API must list the Pages domain in `Cors:Origins`. On first launch each kiosk shows a setup screen;
-enter the device token from Admin → Devices.
+Either way: the build fetches pnpm itself because Cloudflare's build image may not have it ("No preset version installed for command pnpm"). `VITE_API_URL` must have no trailing slash. The API must list the kiosk's URL in `Cors__Origins__0` (Render). On first launch each kiosk shows a setup screen; enter its device token.
 
 ## Printing
 
