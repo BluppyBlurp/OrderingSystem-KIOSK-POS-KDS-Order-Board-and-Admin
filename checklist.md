@@ -146,7 +146,7 @@
 - [x] ⭐ On confirm: `Paid` → SignalR to KDS and Board
 - [x] Cancel/void an unpaid order with a reason
 - [x] ⭐ Receipt PDF (QuestPDF) + reprint: `GET /api/pos/orders/{id}/receipt`, marked REPRINT (2026-10-08). The POS prints its first receipt through the browser
-- [~] Shift summary: cash collected, order count: `GET /api/pos/shift-summary?since=` (mine + whole counter + my voids) *(API done; POS screen pending)* (2026-10-08)
+- [x] Shift summary: cash collected, order count: `GET /api/pos/shift-summary?since=` (mine + whole counter + my voids); POS **Shift** panel with Start new shift, live refresh and an 80 mm printout (2026-10-08)
 - [x] ⭐ POS app on `frontend/pos`: scan-or-type box (USB QR scanners type like a keyboard), live pending list, order panel, tendered keypad with quick amounts, big change-due, cancel with reason, printed receipt (2026-10-08)
 - [x] Development-only staff sign-in (`devstaff_<role>` tokens) so POS/KDS/Admin can be tested before Clerk roles exist; rejected outside Development (2026-10-08)
 
