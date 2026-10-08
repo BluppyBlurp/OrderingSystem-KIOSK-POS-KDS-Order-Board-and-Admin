@@ -32,6 +32,20 @@ export const getOrder = (id: string) =>
 export const getTableStatus = (tableNumber: number) =>
   unwrap(api.GET("/api/kiosk/tables/{tableNumber}", { params: { path: { tableNumber } } }));
 
+/** Asks the API whether a device token is valid before the setup screen saves it. Allows for Render waking up. */
+export async function verifyDeviceToken(token: string): Promise<"ok" | "rejected" | "unreachable"> {
+  try {
+    const res = await fetch(`${config.apiUrl}/api/kiosk/menu`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(90_000),
+    });
+    if (res.ok) return "ok";
+    return res.status === 401 || res.status === 403 ? "rejected" : "unreachable";
+  } catch {
+    return "unreachable";
+  }
+}
+
 /** Development only: completes the stubbed online payment as if PayMongo's webhook had arrived. */
 export async function simulatePayment(id: string) {
   const res = await fetch(`${config.apiUrl}/api/dev/orders/${id}/simulate-payment`, {

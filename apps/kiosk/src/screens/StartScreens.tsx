@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { getTableStatus } from "../api";
+import { getTableStatus, verifyDeviceToken } from "../api";
 import { Button, Modal, Screen, Shape } from "../components/ui";
-import { config, saveDeviceToken } from "../config";
+import { cleanToken, config, savedTokenHint, saveDeviceToken } from "../config";
 import { useKiosk } from "../store";
 
 export function AttractScreen() {
@@ -127,31 +127,59 @@ export function TableScreen() {
   );
 }
 
-/** Shown only when the kiosk has no device token yet (production first run). */
+const setupMessages = {
+  rejected: "That token wasn't accepted. Copy the whole value, starting with dev_, and try again.",
+  unreachable: "Can't reach the server. If it was asleep it can take about a minute to wake up. Try again.",
+};
+
+/**
+ * First run, or when the API rejects the saved token. The token is checked with the API before it is saved,
+ * so a typo shows up here instead of after the customer touches Start.
+ */
 export function SetupScreen({ error }: { error?: string }) {
   const [token, setToken] = useState("");
+  const [status, setStatus] = useState<"idle" | "checking" | "rejected" | "unreachable">("idle");
+  const candidate = cleanToken(token);
+  const hint = savedTokenHint();
+
+  const save = async () => {
+    setStatus("checking");
+    const result = await verifyDeviceToken(candidate);
+    if (result === "ok") {
+      saveDeviceToken(candidate);
+      location.reload();
+    } else {
+      setStatus(result);
+    }
+  };
+
+  const message =
+    status === "rejected" || status === "unreachable"
+      ? setupMessages[status]
+      : error && (hint ? `${error} The saved token ends in …${hint}.` : error);
+
   return (
     <Screen title="Kiosk setup">
       <div className="mx-auto flex max-w-xl flex-col gap-6 p-10">
         <p className="text-xl">Enter the device token shown when this kiosk was registered in the Admin app.</p>
-        {error && <p className="border-4 border-black p-4 text-lg font-bold">{error}</p>}
+        {message && <p className="border-4 border-black p-4 text-lg font-bold">{message}</p>}
         <input
           className="min-h-16 border-4 border-black px-4 text-xl"
           value={token}
-          onChange={(e) => setToken(e.target.value)}
+          onChange={(e) => {
+            setToken(e.target.value);
+            setStatus("idle");
+          }}
           placeholder="dev_…"
           autoFocus
         />
         <Button
           variant="solid"
           size="lg"
-          disabled={!token.trim().startsWith("dev_")}
-          onClick={() => {
-            saveDeviceToken(token);
-            location.reload();
-          }}
+          disabled={!candidate.startsWith("dev_") || candidate.length < 36 || status === "checking"}
+          onClick={save}
         >
-          Save
+          {status === "checking" ? "Checking…" : "Save"}
         </Button>
       </div>
     </Screen>

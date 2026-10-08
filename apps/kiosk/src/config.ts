@@ -16,9 +16,23 @@ export function getDeviceToken(): string | null {
   }
 }
 
+/** Pasted tokens often pick up spaces, line breaks or quotes; real tokens never contain any of those. */
+export function cleanToken(input: string): string {
+  return input.replace(/[\s"'`]/g, "");
+}
+
+/** Last 4 characters of the saved token, so staff can compare it with the registered one without showing it all. */
+export function savedTokenHint(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY)?.slice(-4) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function saveDeviceToken(token: string) {
   try {
-    localStorage.setItem(TOKEN_KEY, token.trim());
+    localStorage.setItem(TOKEN_KEY, cleanToken(token));
   } catch {
     /* storage blocked: the token lasts until reload */
   }
