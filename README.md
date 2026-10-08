@@ -42,4 +42,8 @@ pnpm install
 pnpm dev:kiosk                                               # http://localhost:5173
 ```
 
-Online payments use a stub until PayMongo keys are set. On the kiosk, **Simulate payment (dev)** completes the payment.
+Locally, online payments use a stub. On the kiosk, **Simulate payment (dev)** completes the payment.
+
+## Deploy
+
+The API deploys to Render from `render.yaml` (Blueprint) and `backend/Dockerfile`; each frontend branch deploys to Cloudflare Pages. Step by step: `docs.md` §3.3.

@@ -45,6 +45,14 @@ public class SlipTokenTests
     }
 
     [Theory]
+    [InlineData("+NjCCawqMZ2kIzdYjqC56VwEzD1lHaSIUGmVGRjQnNU=", true)] // 32 bytes
+    [InlineData("c2hvcnQ=", false)] // "short"
+    [InlineData("not base64!", false)]
+    [InlineData("", false)]
+    public void Signing_key_must_be_base64_of_at_least_32_bytes(string key, bool valid) =>
+        Assert.Equal(valid, SlipOptions.IsValidKey(key));
+
+    [Theory]
     [InlineData("")]
     [InlineData("A-101")]
     [InlineData("not.a-token")]

@@ -8,6 +8,7 @@ using Kiosk.Application;
 using Kiosk.Application.Abstractions;
 using Kiosk.Infrastructure;
 using Kiosk.Infrastructure.Persistence;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -40,6 +41,20 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();
 builder.Services.AddOpenApi();
 
+// Behind a hosting proxy (Render): take the client IP from the last X-Forwarded-For hop only, i.e. the one the
+// proxy itself appended, so a caller cannot fake their IP to dodge the per-IP rate limits.
+var behindProxy = builder.Configuration.GetValue<bool>("ForwardedHeaders:Enabled");
+if (behindProxy)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(o =>
+    {
+        o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        o.ForwardLimit = 1;
+        o.KnownIPNetworks.Clear(); // the proxy's addresses aren't published; trust the single hop it adds
+        o.KnownProxies.Clear();
+    });
+}
+
 var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .WithOrigins(origins)
@@ -52,12 +67,24 @@ var app = builder.Build();
 if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
     await using var scope = app.Services.CreateAsyncScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-
-    if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Dev:SeedDemoData"))
-        await DemoDataSeeder.SeedAsync(db, app.Configuration["Dev:KioskToken"]);
+    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
+
+// Sample menu + one kiosk device. Development: Dev:* (on). Elsewhere: Bootstrap:* (opt-in), until the Admin app exists.
+var isDev = app.Environment.IsDevelopment();
+var seedMenu = app.Configuration.GetValue<bool>(isDev ? "Dev:SeedDemoData" : "Bootstrap:SeedDemoMenu");
+var kioskToken = app.Configuration[isDev ? "Dev:KioskToken" : "Bootstrap:KioskToken"];
+if (!isDev && !string.IsNullOrEmpty(kioskToken) && (!kioskToken.StartsWith("dev_", StringComparison.Ordinal) || kioskToken.Length < 36))
+    throw new InvalidOperationException("Bootstrap:KioskToken must be \"dev_\" followed by at least 32 random characters.");
+if (seedMenu || !string.IsNullOrEmpty(kioskToken))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await DemoDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>(), seedMenu, kioskToken,
+        isDev ? "Dev Kiosk" : "Kiosk 1");
+}
+
+if (behindProxy)
+    app.UseForwardedHeaders();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();

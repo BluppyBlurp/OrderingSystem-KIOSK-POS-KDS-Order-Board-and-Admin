@@ -115,6 +115,15 @@ Render has no native .NET runtime, so the API deploys as a **Docker web service*
 - **Background job.** The order-expiry job only runs while the instance is awake. Overdue orders still expire on the first run after waking, because the job catches up.
 - **Config** comes from Render environment variables with the `__` separator: `ConnectionStrings__Default` (Neon pooled), `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__SecretKey`, `PayMongo__WebhookSecret`, and `Cors__Origins__0…n` (one per Cloudflare Pages domain). The health check path is `/health`.
 - **WebSockets** (SignalR) are supported on Render web services.
+- **Proxy:** `ForwardedHeaders__Enabled=true` makes the API take the client IP from the last `X-Forwarded-For` hop only (the one Render adds), so per-IP rate limits see real clients and can't be fooled by a forged header. The container listens on Render's `$PORT`.
+- **Bootstrap (until the Admin app exists):** a fresh production database has no menu and no kiosk device. `Bootstrap__SeedDemoMenu=true` adds the sample menu once, and `Bootstrap__KioskToken` registers one kiosk with a token you choose (`dev_` + at least 32 random characters; anything weaker stops the API at startup). Remove both once Admin manages the menu and devices.
+
+**First deploy**
+1. **Render:** Dashboard → New → **Blueprint** → this repo. Render reads `render.yaml` from `main` and asks for the `sync: false` values: `ConnectionStrings__Default` (Neon pooled, .NET format), `Clerk__Authority`, `Bootstrap__KioskToken`. `Cors__Origins__0` and the PayMongo values can stay empty for now.
+2. **Cloudflare Pages:** create a project from this repo, production branch `frontend/kiosk`, with the build settings in that branch's README and `VITE_API_URL` set to the Render URL.
+3. **Render again:** set `Cors__Origins__0` to the Pages URL (e.g. `https://<project>.pages.dev`); Render redeploys.
+4. **Kiosk:** open the Pages URL. On the setup screen, enter the same `Bootstrap__KioskToken`.
+5. **Later:** add the PayMongo keys. Until then, "Pay here" reports the provider as unavailable and the kiosk offers pay-at-counter.
 
 ---
 
@@ -484,3 +493,4 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 | 2026-10-08 | Kiosk app built (React 19, black-and-white placeholder design). Added **dine in / take out** (`Order.diningOption`), **QR Ph** payment method, one-question-per-screen product customization, browser printing for slip and receipt, a Development-only demo menu and simulated payment. Fixed: item and modifier order is now stored (`OrderItem.lineNumber`, `OrderItemModifier.sortOrder`). |
 | 2026-10-08 | Branch layout: `main` = backend + docs; one `frontend/*` branch per app. |
 | 2026-10-08 | Hosting: API on **Render** (Docker web service; free instances sleep, see §3.3) instead of Fly.io. Frontend branches are now frontend-only (one Cloudflare Pages project each); `main` holds no frontend code. |
+| 2026-10-08 | Render deploy: `backend/Dockerfile`, `render.yaml` Blueprint (Singapore), proxy-aware client IP, `$PORT`, migrations on startup, startup check for the slip key, `Bootstrap__*` menu/kiosk seeding until the Admin app exists, first-deploy steps in §3.3. |

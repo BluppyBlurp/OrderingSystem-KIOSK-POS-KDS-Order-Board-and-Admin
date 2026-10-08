@@ -11,6 +11,14 @@ public sealed class SlipOptions
 
     /// <summary>Base64 key of at least 32 bytes. Rotating it invalidates slips still on screen.</summary>
     public string SigningKey { get; set; } = "";
+
+    public static bool IsValidKey(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return false;
+        var buffer = new byte[key.Length];
+        return Convert.TryFromBase64String(key, buffer, out var length) && length >= 32;
+    }
 }
 
 /// <summary>

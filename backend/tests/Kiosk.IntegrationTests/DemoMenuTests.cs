@@ -14,7 +14,7 @@ public sealed class DemoMenuTests(KioskApiFactory api)
     private async Task<MenuDto> SeededMenuAsync(HttpClient kiosk)
     {
         await using (var scope = api.Services.CreateAsyncScope())
-            await DemoDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>(), devKioskToken: null);
+            await DemoDataSeeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>(), seedMenu: true, kioskToken: null);
         return await (await kiosk.GetAsync("/api/kiosk/menu")).ReadAsync<MenuDto>();
     }
 

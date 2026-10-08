@@ -41,8 +41,9 @@ internal sealed class PayMongoGateway(HttpClient http, IOptions<PayMongoOptions>
     public async Task<CheckoutSession> CreateCheckoutAsync(Order order, PaymentMethod method, CancellationToken ct)
     {
         var o = options.Value;
+        // Reported like an outage (502): the kiosk tells the customer to pay at the counter instead.
         if (string.IsNullOrEmpty(o.SecretKey))
-            throw new InvalidOperationException("PayMongo:SecretKey is not configured.");
+            throw new HttpRequestException("PayMongo:SecretKey is not configured; online payment is unavailable.");
 
         string[] methods = method switch
         {

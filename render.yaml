@@ -1,0 +1,54 @@
+# Render Blueprint for the API (Dashboard → New → Blueprint → pick this repo; Render reads this file from main).
+# Values marked `sync: false` are secrets or per-environment settings: Render asks for them when the Blueprint
+# is created, and they are never stored in the repo.
+services:
+  - type: web
+    name: kiosk-api
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    branch: main
+    region: singapore # next to Neon's ap-southeast-1 database
+    plan: free # free instances sleep when idle (~1 min to wake); choose a paid plan before real customers use it
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Render's proxy terminates HTTPS and adds X-Forwarded-For.
+      - key: ForwardedHeaders__Enabled
+        value: "true"
+      # Applies EF migrations at startup. Safe while there is exactly one instance.
+      - key: Database__MigrateOnStartup
+        value: "true"
+      - key: Jobs__OrderExpiry
+        value: "true"
+      # Base64 HMAC key for the cash-slip QR tokens (Render generates a random 256-bit value).
+      - key: Slip__SigningKey
+        generateValue: true
+
+      # Until the Admin app exists: seed the sample menu and register one kiosk.
+      # Choose the kiosk token yourself: "dev_" + at least 32 random characters. Enter the same value on the
+      # kiosk's setup screen. Remove both once the Admin app manages the menu and devices.
+      - key: Bootstrap__SeedDemoMenu
+        value: "true"
+      - key: Bootstrap__KioskToken
+        sync: false
+
+      # Neon pooled connection string in .NET format:
+      # Host=…-pooler….neon.tech;Database=neondb;Username=…;Password=…;SSL Mode=Require;Channel Binding=Require
+      - key: ConnectionStrings__Default
+        sync: false
+      # Clerk Frontend API URL, e.g. https://<instance>.clerk.accounts.dev
+      - key: Clerk__Authority
+        sync: false
+      # Cloudflare Pages domains allowed to call the API (add __1, __2 … for POS, KDS, board, admin).
+      - key: Cors__Origins__0
+        sync: false
+      # PayMongo. Online payments return an error until these are set.
+      - key: PayMongo__SecretKey
+        sync: false
+      - key: PayMongo__WebhookSecret
+        sync: false
+      - key: PayMongo__SuccessUrl
+        sync: false
+      - key: PayMongo__CancelUrl
+        sync: false

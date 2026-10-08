@@ -6,15 +6,17 @@ using Microsoft.EntityFrameworkCore;
 namespace Kiosk.Infrastructure.Persistence;
 
 /// <summary>
-/// Development only: a sample menu so the kiosk has something to show, and a kiosk device with a known
-/// token so the kiosk app can sign in without the admin app. Runs once (only on an empty menu).
+/// A sample menu so the kiosk has something to show, and optionally one kiosk device with a known token so the
+/// kiosk can sign in without the Admin app. On by default in Development (Dev:*); opt-in elsewhere (Bootstrap:*)
+/// until the Admin app exists. Idempotent: the menu is added once, the device only if its token is new.
 /// </summary>
 public static class DemoDataSeeder
 {
-    public static async Task SeedAsync(AppDbContext db, string? devKioskToken, CancellationToken ct = default)
+    public static async Task SeedAsync(AppDbContext db, bool seedMenu, string? kioskToken, string kioskName = "Dev Kiosk",
+        CancellationToken ct = default)
     {
-        await SeedDeviceAsync(db, devKioskToken, ct);
-        if (await db.Categories.AnyAsync(c => c.Name == "Rice Meals", ct))
+        await SeedDeviceAsync(db, kioskToken, kioskName, ct);
+        if (!seedMenu || await db.Categories.AnyAsync(c => c.Name == "Rice Meals", ct))
             return;
 
         // ---- Reusable questions (each modifier group is one screen on the kiosk) ----
@@ -77,14 +79,14 @@ public static class DemoDataSeeder
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task SeedDeviceAsync(AppDbContext db, string? token, CancellationToken ct)
+    private static async Task SeedDeviceAsync(AppDbContext db, string? token, string name, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(token))
             return;
         var hash = DeviceService.Hash(token);
         if (await db.Devices.AnyAsync(d => d.TokenHash == hash, ct))
             return;
-        db.Devices.Add(new Device { Name = "Dev Kiosk", Kind = DeviceKind.Kiosk, TokenHash = hash, CreatedAt = DateTimeOffset.UtcNow });
+        db.Devices.Add(new Device { Name = name, Kind = DeviceKind.Kiosk, TokenHash = hash, CreatedAt = DateTimeOffset.UtcNow });
         await db.SaveChangesAsync(ct);
     }
 

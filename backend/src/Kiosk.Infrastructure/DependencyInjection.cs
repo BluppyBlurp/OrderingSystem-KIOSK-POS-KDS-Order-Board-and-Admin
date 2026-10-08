@@ -25,7 +25,10 @@ public static class DependencyInjection
         services.TryAddScoped<ICurrentActor, NoActor>();
         services.AddScoped<IOrderNumberGenerator, PostgresOrderNumberGenerator>();
 
-        services.AddOptions<SlipOptions>().Bind(config.GetSection(SlipOptions.Section));
+        services.AddOptions<SlipOptions>()
+            .Bind(config.GetSection(SlipOptions.Section))
+            .Validate(o => SlipOptions.IsValidKey(o.SigningKey), "Slip:SigningKey must be a base64 key of at least 32 bytes.")
+            .ValidateOnStart(); // fail the deploy, not the first cash order
         services.AddSingleton<ISlipTokenService, HmacSlipTokenService>();
 
         services.AddOptions<PayMongoOptions>().Bind(config.GetSection(PayMongoOptions.Section));

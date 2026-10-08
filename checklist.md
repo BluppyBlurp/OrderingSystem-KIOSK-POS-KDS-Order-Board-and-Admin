@@ -196,8 +196,13 @@
 ## Milestone 9 — Release
 - [ ] Sales report endpoint + Admin reports page
 - [ ] Sentry on backend and all five frontends
-- [ ] ⭐ API `Dockerfile` for Render (Render has no native .NET runtime; it deploys .NET as a Docker web service) (2026-10-08)
+- [~] ⭐ API `Dockerfile` for Render *(written; the Release publish it runs was verified in Production mode, but the image itself hasn't been built: no Docker on the dev PC; Render builds it on first deploy)* (Render has no native .NET runtime; it deploys .NET as a Docker web service) (2026-10-08)
 - [ ] Render: env vars (`ConnectionStrings__Default` = Neon pooled, `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__*`, `Cors__Origins__*` = Pages domains); health check `/health` (2026-10-08)
+- [x] `render.yaml` Blueprint (Singapore, next to Neon's ap-southeast-1; secrets prompted, never committed) (2026-10-08)
+- [x] API honours Render's `PORT` and its proxy's `X-Forwarded-For` (real client IP for rate limits, last hop only so it can't be spoofed) (2026-10-08)
+- [x] Migrations on deploy: `Database__MigrateOnStartup=true` while the API runs as a single instance (2026-10-08)
+- [x] Bootstrap until the Admin app exists: `Bootstrap__SeedDemoMenu` + `Bootstrap__KioskToken` (one kiosk, token chosen by you; weak tokens refused at startup). Remove once Admin manages menu and devices (2026-10-08)
+- [x] Startup fails fast on a missing or invalid `Slip__SigningKey`; a missing PayMongo key shows as "payment provider unavailable", not a crash (2026-10-08)
 - [ ] Decide the Render plan: free instances sleep when idle and take about a minute to wake, which a kiosk can't wait for (2026-10-08)
 - [ ] Frontends deployed to Cloudflare Pages (one project per `frontend/*` branch), API to Render
 - [ ] HTTPS, environment secrets, database backups verified restorable
