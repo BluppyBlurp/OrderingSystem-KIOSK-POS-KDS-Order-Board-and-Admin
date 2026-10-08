@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Kiosk.Api.Auth;
 using Kiosk.Application.Abstractions;
+using Kiosk.Application.Staff;
 using Kiosk.Application.Devices;
 using Kiosk.Domain.Devices;
 using Kiosk.Infrastructure.Persistence;
@@ -43,6 +44,8 @@ public sealed class KioskApiFactory : WebApplicationFactory<Program>, IAsyncLife
 
     public FakeMediaStorage Media { get; } = new();
 
+    public FakeStaffDirectory StaffDirectory { get; } = new();
+
     private string ConnectionString => new NpgsqlConnectionStringBuilder(_server) { Database = _database }.ConnectionString;
 
     public async ValueTask InitializeAsync()
@@ -68,11 +71,13 @@ public sealed class KioskApiFactory : WebApplicationFactory<Program>, IAsyncLife
         builder.UseSetting("Slip:SigningKey", Convert.ToBase64String(new byte[32].Select((_, i) => (byte)(i + 1)).ToArray()));
         builder.UseSetting("PayMongo:UseStub", "true");
         builder.UseSetting("PayMongo:WebhookSecret", WebhookSecret);
+        builder.UseSetting("Cors:Origins:0", "https://admin.example.com");
 
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Time);
             services.AddSingleton<IMediaStorage>(Media);
+            services.AddScoped<IStaffDirectory>(_ => StaffDirectory);
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o =>
             {
                 o.Authority = null;

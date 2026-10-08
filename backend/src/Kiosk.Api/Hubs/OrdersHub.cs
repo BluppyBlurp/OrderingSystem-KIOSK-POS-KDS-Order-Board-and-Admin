@@ -31,9 +31,9 @@ public sealed class OrdersHub(KioskOrderService kioskOrders) : Hub
 
         if (user.HasClaim(Claims.DeviceKind, nameof(DeviceKind.Kiosk))) groups.Add(HubGroups.Kiosks);
         if (user.HasClaim(Claims.DeviceKind, nameof(DeviceKind.Board))) groups.Add(HubGroups.Board);
-        if (user.HasAnyRole(Roles.Admin, Roles.Manager, Roles.Kitchen)) groups.Add(HubGroups.Kitchen);
-        if (user.HasAnyRole(Roles.Admin, Roles.Manager, Roles.Cashier)) groups.Add(HubGroups.Pos);
-        if (user.HasAnyRole(Roles.Admin, Roles.Manager, Roles.Cashier, Roles.Kitchen)) groups.Add(HubGroups.Board);
+        if (user.HasAnyRole(Roles.Admin, Roles.Manager, Roles.AssistantManager, Roles.Kitchen)) groups.Add(HubGroups.Kitchen);
+        if (user.HasAnyRole(Roles.Admin, Roles.Manager, Roles.AssistantManager, Roles.Cashier)) groups.Add(HubGroups.Pos);
+        if (user.HasAnyRole(Roles.AllStaff)) groups.Add(HubGroups.Board);
 
         foreach (var group in groups.Distinct())
             await Groups.AddToGroupAsync(Context.ConnectionId, group);

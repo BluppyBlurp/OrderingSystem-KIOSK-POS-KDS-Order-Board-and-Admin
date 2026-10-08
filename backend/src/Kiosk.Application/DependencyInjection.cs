@@ -7,6 +7,7 @@ using Kiosk.Application.Orders;
 using Kiosk.Application.Payments;
 using Kiosk.Application.Receipts;
 using Kiosk.Application.Reports;
+using Kiosk.Application.Staff;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<MediaService>();
         services.AddScoped<ReceiptService>();
         services.AddScoped<ReportService>();
+        services.AddScoped<StaffService>();
         return services;
     }
 }

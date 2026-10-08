@@ -122,7 +122,7 @@ Render has no native .NET runtime, so the API deploys as a **Docker web service*
 
 - **Sleeping.** Free instances spin down when idle, and the first request afterwards waits about a minute while it wakes. A customer at a kiosk won't wait that long, so production needs an always-on paid instance, or at least a keep-alive ping during trading hours (as with Neon's cold starts).
 - **Background job.** The order-expiry job only runs while the instance is awake. Overdue orders still expire on the first run after waking, because the job catches up.
-- **Config** comes from Render environment variables with the `__` separator: `ConnectionStrings__Default` (Neon pooled), `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__SecretKey`, `PayMongo__WebhookSecret`, `Storage__R2__{AccountId,AccessKeyId,SecretAccessKey,Bucket,PublicBaseUrl}` (§3.2), and `Cors__Origins__0…n` (one per Cloudflare Pages domain). Optional: `Receipt__StoreName`, `Receipt__HeaderLines__0…n` (address, TIN), `Receipt__Footer`. The health check path is `/health`.
+- **Config** comes from Render environment variables with the `__` separator: `ConnectionStrings__Default` (Neon pooled), `Clerk__Authority`, `Clerk__SecretKey` (staff management), `Slip__SigningKey`, `PayMongo__SecretKey`, `PayMongo__WebhookSecret`, `Storage__R2__{AccountId,AccessKeyId,SecretAccessKey,Bucket,PublicBaseUrl}` (§3.2), and `Cors__Origins__0…n` (one per Cloudflare Pages domain). Optional: `Receipt__StoreName`, `Receipt__HeaderLines__0…n` (address, TIN), `Receipt__Footer`. The health check path is `/health`.
 - **WebSockets** (SignalR) are supported on Render web services.
 - **Proxy:** `ForwardedHeaders__Enabled=true` makes the API take the client IP from the last `X-Forwarded-For` hop only (the one Render adds), so per-IP rate limits see real clients and can't be fooled by a forged header. The container listens on Render's `$PORT`.
 - **Bootstrap (until the Admin app exists):** a fresh production database has no menu and no kiosk device. `Bootstrap__SeedDemoMenu=true` adds the sample menu once, and `Bootstrap__KioskToken` registers one kiosk with a token you choose (`dev_` + at least 32 random characters; anything weaker stops the API at startup). Remove both once Admin manages the menu and devices.
@@ -436,29 +436,40 @@ Dependency direction: `Api → Application → Domain`, `Infrastructure → Appl
 
 **Clerk** issues JWTs for staff. The backend validates them against Clerk's JWKS endpoint — no session lookup per request. Role comes from a custom session claim (`publicMetadata.role`) mapped to an ASP.NET policy.
 
-Clerk is independent of Neon and R2; the three services never talk to each other. The flow is: staff signs in through Clerk's UI → React receives a JWT → React sends it as `Authorization: Bearer` → the API verifies the signature against cached JWKS and reads the role claim. **The backend makes no runtime call to Clerk** — it is standard JWT Bearer auth, roughly ten lines in `Program.cs`, with no Clerk SDK on the server.
+Clerk is independent of Neon and R2; the three services never talk to each other. The flow is: staff signs in through Clerk's UI → React receives a JWT → React sends it as `Authorization: Bearer` → the API verifies the signature against cached JWKS and reads the role claim. **Checking a request makes no call to Clerk** — it is standard JWT Bearer auth with no Clerk SDK on the server. Only staff management (below) calls Clerk's Backend API.
 
 The role claim must be exposed in the token explicitly. Without it the API receives a valid JWT with no way to tell a cashier from a manager.
 
 **One-time Clerk setup**
-1. Clerk dashboard → **Sessions** → *Customize session token* → add `{"role": "{{user.public_metadata.role}}"}`.
-2. On each staff user, set **public metadata** to `{"role": "cashier"}` (or `kitchen`, `manager`, `admin`).
+1. Clerk dashboard → **Sessions** → *Customize session token* → add `{"role": "{{user.public_metadata.role}}"}` (done on the dev instance with `clerk config patch`, 2026-10-08).
+2. Give the first admin their role: `{"role": "admin"}` in their **public metadata** (dashboard, or `clerk api /users/<id>/metadata -X PATCH -d '{"public_metadata":{"role":"admin"}}'`). Everyone after that is handled in Admin → Staff.
 3. Set `Clerk:Authority` to the instance's **Frontend API URL** (API Keys page, e.g. `https://<name>.clerk.accounts.dev`). It is the token issuer and the JWKS source.
 4. Optionally set `Clerk:AuthorizedParties` to the POS, KDS and Admin origins; tokens whose `azp` is not listed are rejected.
 
-The API needs no Clerk secret key. Only the frontends use the publishable key.
+4. Set `Clerk:SecretKey` (`sk_…`, from the API Keys page) on the API for staff management. Locally it lives in the git-ignored `backend/.env` as `Clerk__SecretKey`. Without it the Staff page answers 503; sign-in itself still works.
+5. For production, consider Clerk's **Restricted** sign-up mode (Configure → Restrictions) so only invited people can create accounts.
+
+Only the frontends use the publishable key; the secret key stays on the API.
+
+**Staff management (Admin → Staff)** — how most shops run it. Two ways in:
+- **Invite:** a manager enters an email and a role; Clerk emails a sign-up link, and the account has that role the moment it is created. No approval step.
+- **Sign up, then approval:** someone signs up on a staff app themselves. They get a role-less account and a "Waiting for approval" screen (it rechecks every 20 s). A manager approves them with a role, or rejects the sign-up (the account is deleted).
+
+Afterwards a manager can change a role or **remove access** (role cleared). Lowering or removing access also revokes the person's Clerk sessions, so it takes effect immediately instead of when their 60-second token runs out. Rules: admins manage everyone; managers manage assistant managers, cashiers and kitchen staff, and can't create managers or admins; nobody changes their own access. Every action is written to `AuditLog`. Staff accounts and roles live only in Clerk; the database stores nothing about them except audit entries.
 
 **Development-only staff sign-in:** with `Dev:StaffLogin=true` (set in `appsettings.Development.json`) the API accepts `Bearer devstaff_<role>` (e.g. `devstaff_cashier`) as a signed-in staff member, so POS, KDS and Admin can be tested before Clerk roles exist. The scheme is only registered in the Development environment; anywhere else those tokens go to Clerk JWT validation and fail (covered by a test).
 
-**Policies** (one per route group): `Kiosk` (kiosk device), `Board` (board device or any staff role), `Pos` (cashier/manager/admin), `Kds` (kitchen/manager/admin), `Admin` (manager/admin). The fallback policy denies everything, so an endpoint without a policy is unreachable, and a test fails the build if one exists.
+**Policies** (one per route group): `Kiosk` (kiosk device), `Board` (board device or any staff role), `Pos` (cashier/assistant manager/manager/admin), `Kds` (kitchen/assistant manager/manager/admin), `BackOffice` (assistant manager/manager/admin: read the menu, availability and stock, reports), `Admin` (manager/admin: every other menu change, media, devices, staff). Admin controllers carry `BackOffice` and their write actions add `Admin`; ASP.NET combines the two with AND. The fallback policy denies everything, so an endpoint without a policy is unreachable, and a test fails the build if one exists.
 
-| Role | Kiosk | POS | KDS | Board | Admin |
-|---|:--:|:--:|:--:|:--:|:--:|
-| `admin` | — | ✅ | ✅ | ✅ | ✅ |
-| `manager` | — | ✅ | ✅ | ✅ | ✅ |
-| `cashier` | — | ✅ | — | ✅ | — |
-| `kitchen` | — | — | ✅ | ✅ | — |
-| *device token* | ✅ | — | — | ✅ | — |
+| Role | Kiosk | POS | KDS | Board | Admin app | Staff management |
+|---|:--:|:--:|:--:|:--:|:--:|:--:|
+| `admin` | — | ✅ | ✅ | ✅ | ✅ | everyone |
+| `manager` | — | ✅ | ✅ | ✅ | ✅ | assistant managers, cashiers, kitchen |
+| `assistant_manager` | — | ✅ | ✅ | ✅ | menu read-only + availability/stock, reports | — |
+| `cashier` | — | ✅ | — | ✅ | — | — |
+| `kitchen` | — | — | ✅ | ✅ | — | — |
+| *no role yet* | — | waiting for approval | waiting for approval | — | waiting for approval | — |
+| *device token* | ✅ | — | — | ✅ | — | — |
 
 Kiosks and boards have no human login. A manager registers the device in Admin, which shows a `dev_…` token **once**; the device stores it and sends it as `Authorization: Bearer dev_…`. The API routes `dev_` tokens to the device handler and everything else to Clerk JWT validation. Tokens are stored as SHA-256 hashes and are revocable.
 
@@ -515,3 +526,4 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 | 2026-10-08 | Kiosk: SignalR (`MenuChanged`, `WatchOrder`, refetch on reconnect), upsell prompt before checkout, failed-payment screen with Try again / Pay at counter, service worker for an offline menu (§12). |
 | 2026-10-08 | POS shift summary screen: Shift panel (own cash, whole counter, voids), Start new shift saved per cashier on the till, printable 80 mm drawer-count slip. |
 | 2026-10-08 | KDS, order board and admin apps built on their `frontend/*` branches. KDS: live tickets, Start/Ready/Handed over, age colours, chime + flash. Board: board-token setup screen, Preparing/Now serving, chime on Ready, endless reconnect. Admin: menu, options, devices, reports, R2 upload. Reordering uses ↑/↓ buttons instead of drag. |
+| 2026-10-08 | Clerk set up (dev instance `legal-gecko-7325`): role claim in the session token, first admin. New role **assistant manager** and `BackOffice` policy. Admin → Staff: invite by email with a role, approve or reject self sign-ups, change roles, remove access (sessions revoked), audit-logged; staff apps show "Waiting for approval" to role-less accounts. API now needs `Clerk:SecretKey` for staff management. |

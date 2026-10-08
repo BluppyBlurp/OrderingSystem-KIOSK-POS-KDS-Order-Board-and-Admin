@@ -135,7 +135,7 @@ public sealed class DevStaffAuthenticationHandler(
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string TokenPrefix = "devstaff_";
-    private static readonly string[] KnownRoles = [Roles.Admin, Roles.Manager, Roles.Cashier, Roles.Kitchen];
+    private static readonly string[] KnownRoles = Roles.AllStaff;
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {

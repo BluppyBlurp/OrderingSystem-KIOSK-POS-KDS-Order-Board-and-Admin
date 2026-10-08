@@ -1,4 +1,6 @@
 using Kiosk.Application.Abstractions;
+using Kiosk.Application.Staff;
+using Kiosk.Infrastructure.Identity;
 using Kiosk.Infrastructure.Jobs;
 using Kiosk.Infrastructure.Payments;
 using Kiosk.Infrastructure.Persistence;
@@ -50,6 +52,14 @@ public static class DependencyInjection
         }
 
         services.AddSingleton<IReceiptRenderer, QuestPdfReceiptRenderer>();
+
+        // Staff management (Admin → Staff) calls Clerk's Backend API; without a secret key it answers 503.
+        services.AddOptions<ClerkBackendOptions>().Bind(config.GetSection(ClerkBackendOptions.Section));
+        services.AddHttpClient<IStaffDirectory, ClerkStaffDirectory>((sp, http) =>
+        {
+            http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<ClerkBackendOptions>>().Value.ApiUrl);
+            http.Timeout = TimeSpan.FromSeconds(15);
+        });
 
         // Until Storage:R2 is filled in, the media endpoints answer 503 instead of the API refusing to start.
         services.AddOptions<R2Options>().Bind(config.GetSection(R2Options.Section));

@@ -7,7 +7,7 @@ namespace Kiosk.Api.Controllers.Admin;
 
 [ApiController]
 [Route("api/admin/reports")]
-[Authorize(Policy = Policies.Admin)]
+[Authorize(Policy = Policies.BackOffice)]
 public sealed class ReportsController(ReportService reports) : ControllerBase
 {
     /// <summary>Sales by business date, both ends inclusive (default: today).</summary>

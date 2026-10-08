@@ -37,15 +37,18 @@
 ## Milestone 1 — Identity & Access
 *Goal: the right person reaches the right app, and nothing else.*
 
-- [~] ⭐ Clerk application created; roles `admin`, `manager`, `cashier`, `kitchen` still to be set on users (`publicMetadata.role`)
-- [ ] ⭐ Role exposed as a custom session claim: `"role": "{{user.public_metadata.role}}"` *(set in the Clerk dashboard)*
+- [x] ⭐ Clerk application created (dev instance); first admin set; roles `admin`, `manager`, `assistant_manager`, `cashier`, `kitchen` (2026-10-08)
+- [x] ⭐ Role exposed as a custom session claim: `"role": "{{user.public_metadata.role}}"` (set with `clerk config patch`, 2026-10-08)
 - [x] ⭐ ASP.NET JWT Bearer validating Clerk JWKS *(set `Clerk:Authority` to the Frontend API URL)*
 - [x] ⭐ Authorization policies per route group: `Kiosk`, `Board`, `Pos`, `Kds`, `Admin`
 - [x] ⭐ Default-deny fallback policy (no accidentally anonymous endpoint)
 - [x] ⭐ Device token scheme: `Device` entity, hashed token, `kind` (Kiosk/Board), `isActive`
 - [x] ⭐ Device auth handler (`dev_…` bearer tokens) + `Kiosk` / `Board` policies
 - [x] Admin endpoints to register, list, and revoke devices
-- [x] Clerk sign-in wired into POS, KDS, Admin apps, with Dev sign-in buttons in development *(not yet tried with a real Clerk instance)* (2026-10-08)
+- [x] Clerk sign-in wired into POS, KDS, Admin apps, with Dev sign-in buttons in development; real Clerk sign-in tried on the POS (2026-10-08)
+- [x] Admin → Staff: invite by email with a role, approve or reject self sign-ups, change roles, remove access (revokes sessions), audit-logged; staff apps show "Waiting for approval" until approved (2026-10-08)
+- [x] Assistant manager role: POS, KDS, board, read-only menu with availability/stock, reports (2026-10-08)
+- [ ] Set `Clerk__Authority` and `Clerk__SecretKey` on Render; consider Clerk's Restricted sign-up mode for production
 - [x] Route-group tests: kiosk/board tokens, each staff role, revoked tokens, cross-kiosk reads; plus a reflection test that every controller action declares a policy
 
 ---

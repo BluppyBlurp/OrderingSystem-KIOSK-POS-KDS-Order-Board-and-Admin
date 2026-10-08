@@ -40,6 +40,9 @@ services:
       # Clerk Frontend API URL, e.g. https://<instance>.clerk.accounts.dev
       - key: Clerk__Authority
         sync: false
+      # Clerk secret key (sk_…) for Admin → Staff (invite, approve, change roles). Sign-in works without it.
+      - key: Clerk__SecretKey
+        sync: false
       # Cloudflare Pages domains allowed to call the API (add __1, __2 … for POS, KDS, board, admin).
       - key: Cors__Origins__0
         sync: false

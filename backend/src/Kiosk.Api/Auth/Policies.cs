@@ -12,6 +12,9 @@ public static class Policies
     public const string Pos = nameof(Pos);
     public const string Kds = nameof(Kds);
     public const string Admin = nameof(Admin);
+
+    /// <summary>Day-to-day back office: read the menu, mark items sold out / in stock, read reports. Includes assistant managers.</summary>
+    public const string BackOffice = nameof(BackOffice);
     public const string AnyClient = nameof(AnyClient);
 
     public static void Register(AuthorizationOptions options)
@@ -19,10 +22,11 @@ public static class Policies
         options.AddPolicy(Kiosk, p => p.RequireClaim(Claims.DeviceKind, nameof(DeviceKind.Kiosk)));
         options.AddPolicy(Board, p => p.RequireAssertion(ctx =>
             ctx.User.HasClaim(Claims.DeviceKind, nameof(DeviceKind.Board)) ||
-            ctx.User.HasAnyRole(Roles.Admin, Roles.Manager, Roles.Cashier, Roles.Kitchen)));
-        options.AddPolicy(Pos, p => p.RequireClaim(Claims.Role, Roles.Admin, Roles.Manager, Roles.Cashier));
-        options.AddPolicy(Kds, p => p.RequireClaim(Claims.Role, Roles.Admin, Roles.Manager, Roles.Kitchen));
+            ctx.User.HasAnyRole(Roles.AllStaff)));
+        options.AddPolicy(Pos, p => p.RequireClaim(Claims.Role, Roles.Admin, Roles.Manager, Roles.AssistantManager, Roles.Cashier));
+        options.AddPolicy(Kds, p => p.RequireClaim(Claims.Role, Roles.Admin, Roles.Manager, Roles.AssistantManager, Roles.Kitchen));
         options.AddPolicy(Admin, p => p.RequireClaim(Claims.Role, Roles.Admin, Roles.Manager));
+        options.AddPolicy(BackOffice, p => p.RequireClaim(Claims.Role, Roles.Admin, Roles.Manager, Roles.AssistantManager));
         options.AddPolicy(AnyClient, p => p.RequireAuthenticatedUser());
 
         // Default-deny: an endpoint that forgot [Authorize(Policy = …)] or [AllowAnonymous] is unreachable.
@@ -30,12 +34,16 @@ public static class Policies
     }
 }
 
+/// <summary>Role claim values; the list itself lives in <see cref="Kiosk.Application.Staff.StaffRoles"/>.</summary>
 public static class Roles
 {
-    public const string Admin = "admin";
-    public const string Manager = "manager";
-    public const string Cashier = "cashier";
-    public const string Kitchen = "kitchen";
+    public const string Admin = Kiosk.Application.Staff.StaffRoles.Admin;
+    public const string Manager = Kiosk.Application.Staff.StaffRoles.Manager;
+    public const string AssistantManager = Kiosk.Application.Staff.StaffRoles.AssistantManager;
+    public const string Cashier = Kiosk.Application.Staff.StaffRoles.Cashier;
+    public const string Kitchen = Kiosk.Application.Staff.StaffRoles.Kitchen;
+
+    public static readonly string[] AllStaff = [.. Kiosk.Application.Staff.StaffRoles.All];
 }
 
 public static class Claims
