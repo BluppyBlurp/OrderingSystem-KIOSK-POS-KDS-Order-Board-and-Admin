@@ -6,4 +6,4 @@ export const config = {
 };
 
 /** Roles the API's Pos policy accepts. */
-export const POS_ROLES = ["cashier", "manager", "admin"];
+export const POS_ROLES = ["cashier", "assistant_manager", "manager", "admin"];

@@ -7,6 +7,7 @@ import { OrderPanel } from "./components/OrderPanel";
 import { PendingList } from "./components/PendingList";
 import { ScanBox } from "./components/ScanBox";
 import { ShiftSummaryPanel } from "./components/ShiftSummary";
+import { PendingApproval } from "./components/PendingApproval";
 import { Button } from "./components/ui";
 import { POS_ROLES } from "./config";
 import { usePosHub } from "./realtime";
@@ -14,6 +15,8 @@ import { usePosHub } from "./realtime";
 export function App() {
   const session = useSession();
   setTokenSource(session.getToken); // before any query below runs
+
+  if (!session.role) return <PendingApproval name={session.name} onRefresh={session.refresh} onSignOut={session.signOut} />;
 
   if (session.role && !POS_ROLES.includes(session.role)) {
     return (
