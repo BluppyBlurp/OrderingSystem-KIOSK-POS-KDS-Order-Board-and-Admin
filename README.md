@@ -51,7 +51,7 @@ Same setup as the kiosk (see the `frontend/kiosk` README), with these values:
 |---|---|
 | Branch | `frontend/admin` |
 | Build command | `npx --yes pnpm@10.26.1 install --frozen-lockfile && npx --yes pnpm@10.26.1 --filter @kiosk/admin build` |
-| Deploy command (Worker) | `npx wrangler deploy` (uploads `apps/admin/dist`, as set in `wrangler.jsonc`) |
+| Deploy command (Worker) | `npx wrangler deploy` (uploads `apps/admin/dist` as the Worker `kiosk-admin`: Cloudflare rejects the name `admin`) |
 | Output directory (Pages) | `apps/admin/dist` |
 | Build variables | `VITE_API_URL` = the Render API URL, `VITE_CLERK_PUBLISHABLE_KEY`, `NODE_VERSION` = `22` |
 

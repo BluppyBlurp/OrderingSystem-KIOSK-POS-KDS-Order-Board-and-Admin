@@ -1,7 +1,7 @@
 // Cloudflare Workers static-assets deploy for the app (used when the project is a Worker, not a Pages project).
 // Build first (`pnpm --filter @kiosk/admin build`), then `npx wrangler deploy` uploads apps/admin/dist.
 {
-  "name": "admin",
+  "name": "kiosk-admin",
   "compatibility_date": "2026-09-01",
   "assets": {
     "directory": "./apps/admin/dist",
