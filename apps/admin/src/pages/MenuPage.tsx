@@ -9,6 +9,7 @@ import {
   reorderCategories,
   reorderProducts,
   setAvailability,
+  setStock,
   updateCategory,
   useCategories,
   useProducts,
@@ -20,8 +21,11 @@ import { Button, money } from "../components/ui";
 import { move } from "../lib/reorder";
 import { ProductEditor } from "./ProductEditor";
 
-/** Categories on the left, the selected category's products on the right. Every save pushes MenuChanged to kiosks. */
-export function MenuPage() {
+/**
+ * Categories on the left, the selected category's products on the right. Every save pushes MenuChanged to kiosks.
+ * Without `canEdit` (assistant managers) the page is read-only apart from availability and stock.
+ */
+export function MenuPage({ canEdit }: { canEdit: boolean }) {
   const queryClient = useQueryClient();
   const categories = useCategories();
   const products = useProducts();
@@ -66,8 +70,10 @@ export function MenuPage() {
               onDelete={() => confirm(`Delete category "${c.name}"?`) && run(() => deleteCategory(c.id))}
               first={i === 0}
               last={i === list.length - 1}
+              canEdit={canEdit}
             />
           ))}
+          {canEdit && (
           <form
             className="flex gap-2"
             onSubmit={(e) => {
@@ -85,6 +91,7 @@ export function MenuPage() {
               Add
             </Button>
           </form>
+          )}
         </aside>
 
         <section className="min-w-0 flex-1 overflow-y-auto p-4">
@@ -92,14 +99,16 @@ export function MenuPage() {
             <>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-2xl font-black uppercase">{selected.name}</h2>
-                <Button variant="solid" onClick={() => setEditing("new")}>
-                  New product
-                </Button>
+                {canEdit && (
+                  <Button variant="solid" onClick={() => setEditing("new")}>
+                    New product
+                  </Button>
+                )}
               </div>
               <table className="w-full border-collapse text-left text-lg">
                 <thead>
                   <tr className="border-b-4 border-black">
-                    <th className="p-2">Order</th>
+                    {canEdit && <th className="p-2">Order</th>}
                     <th className="p-2">Name</th>
                     <th className="p-2">Price</th>
                     <th className="p-2">Stock</th>
@@ -110,6 +119,7 @@ export function MenuPage() {
                 <tbody>
                   {inCategory.map((p, i) => (
                     <tr key={p.id} className="border-b-2 border-black">
+                      {canEdit && (
                       <td className="p-2 whitespace-nowrap">
                         <Button disabled={i === 0} aria-label="Move up" onClick={() => run(() => reorderProducts(move(inCategory, i, -1).map((x) => x.id)))}>
                           ↑
@@ -122,18 +132,25 @@ export function MenuPage() {
                           ↓
                         </Button>
                       </td>
+                      )}
                       <td className="p-2 font-bold">
                         {p.name}
                         {p.media.length > 0 && <span className="ml-2 text-sm font-normal">({p.media.length} media)</span>}
                       </td>
                       <td className="p-2">{money(p.basePrice)}</td>
-                      <td className="p-2">{p.stock ?? "not tracked"}</td>
+                      <td className="p-2">
+                        <StockCell stock={p.stock ?? null} onSave={(value) => run(() => setStock(p.id, value))} />
+                      </td>
                       <td className="p-2">
                         <Check label={p.isAvailable ? "Yes" : "No"} checked={p.isAvailable} onChange={(v) => run(() => setAvailability(p.id, v))} />
                       </td>
                       <td className="p-2 text-right whitespace-nowrap">
-                        <Button onClick={() => setEditing(p)}>Edit</Button>{" "}
-                        <Button onClick={() => confirm(`Delete "${p.name}"?`) && run(() => deleteProduct(p.id))}>Delete</Button>
+                        {canEdit && (
+                          <>
+                            <Button onClick={() => setEditing(p)}>Edit</Button>{" "}
+                            <Button onClick={() => confirm(`Delete "${p.name}"?`) && run(() => deleteProduct(p.id))}>Delete</Button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -142,12 +159,12 @@ export function MenuPage() {
               {inCategory.length === 0 && !products.isLoading && <p className="p-4 text-lg">No products in this category yet.</p>}
             </>
           ) : (
-            !categories.isLoading && <p className="text-xl">Add a category to start building the menu.</p>
+            !categories.isLoading && <p className="text-xl">{canEdit ? "Add a category to start building the menu." : "The menu is empty."}</p>
           )}
         </section>
       </div>
 
-      {editing && selected && (
+      {canEdit && editing && selected && (
         <ProductEditor
           // re-read the product after media changes so the editor shows the latest list
           product={editing === "new" ? null : ((products.data ?? []).find((p) => p.id === editing.id) ?? editing)}
@@ -174,6 +191,7 @@ function CategoryRow({
   onDelete,
   first,
   last,
+  canEdit,
 }: {
   category: Category;
   selected: boolean;
@@ -183,6 +201,7 @@ function CategoryRow({
   onDelete: () => void;
   first: boolean;
   last: boolean;
+  canEdit: boolean;
 }) {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(category.name);
@@ -206,7 +225,7 @@ function CategoryRow({
           {category.name} <span className="text-sm font-normal">({category.productCount}{category.isActive ? "" : ", hidden"})</span>
         </button>
       )}
-      {selected && (
+      {selected && canEdit && (
         <div className="flex flex-wrap gap-2 text-black">
           <Button disabled={first} onClick={() => onMove(-1)} aria-label="Move up">
             ↑
@@ -220,5 +239,45 @@ function CategoryRow({
         </div>
       )}
     </div>
+  );
+}
+
+/** Quick stock change from the list (the main job for assistant managers). Blank = stop tracking stock. */
+function StockCell({ stock, onSave }: { stock: number | null; onSave: (value: number | null) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState("");
+
+  if (!editing) {
+    return (
+      <span className="flex items-center gap-2 whitespace-nowrap">
+        {stock ?? "not tracked"}
+        <Button
+          onClick={() => {
+            setText(stock === null ? "" : String(stock));
+            setEditing(true);
+          }}
+        >
+          Change
+        </Button>
+      </span>
+    );
+  }
+  return (
+    <form
+      className="flex items-center gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const value = text.trim() === "" ? null : Math.max(0, Math.floor(Number(text)));
+        if (value !== null && Number.isNaN(value)) return;
+        onSave(value);
+        setEditing(false);
+      }}
+    >
+      <input className="w-24 border-4 border-black px-2 py-1 text-lg" inputMode="numeric" value={text} onChange={(e) => setText(e.target.value)} autoFocus aria-label="Stock" placeholder="none" />
+      <Button type="submit" variant="solid">
+        Save
+      </Button>
+      <Button onClick={() => setEditing(false)}>Cancel</Button>
+    </form>
   );
 }

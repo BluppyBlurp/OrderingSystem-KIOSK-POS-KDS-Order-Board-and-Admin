@@ -6,12 +6,17 @@ Frontend only. The API lives on the `main` branch (see `docs.md` there).
   reorder, the questions the kiosk asks and their order, photos and videos). Every save updates kiosks live.
 - **Options:** option groups (the kiosk's questions) and their options with price changes.
 - **Devices:** register kiosks and order boards (the token is shown once), revoke them.
+- **Staff:** invite someone by email with their role, approve or reject people who signed up themselves, change
+  roles, remove access. Admins manage everyone; managers manage assistant managers, cashiers and kitchen staff. Needs
+  `Clerk__SecretKey` on the API.
+- **Roles:** managers and admins get every tab; assistant managers get a read-only menu (they can still change
+  availability and stock) and Reports.
 - **Reports:** sales by date range (totals, VAT, by payment method, by day, top products) and payments that need a
   manual refund.
 - **Uploads** go straight from the browser to Cloudflare R2 with a presigned URL, so the bucket's CORS policy must
   allow `PUT` with a `Content-Type` header from this app's origin. Until the API's `Storage__R2__*` settings are
   filled in, uploads say storage isn't configured; media can still be added by https URL.
-- **Auth:** Clerk sign-in (`manager`, `admin`)
+- **Auth:** Clerk sign-in (`admin`, `manager`, `assistant_manager`); accounts without a role see "Waiting for approval"
 - **API:** `/api/admin/*`
 
 ## Run locally

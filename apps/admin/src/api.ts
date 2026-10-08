@@ -110,3 +110,24 @@ export const deleteModifier = (groupId: string, id: string) =>
 
 export const registerDevice = (body: Schemas["RegisterDeviceRequest"]) => unwrap(api.POST("/api/admin/devices", { body }));
 export const revokeDevice = (id: string) => done(api.POST("/api/admin/devices/{id}/revoke", { params: { path: { id } } }));
+
+// ---------- Staff ----------
+
+export type StaffOverview = Schemas["StaffOverviewDto"];
+export type StaffMember = Schemas["StaffMemberDto"];
+export type StaffInvitation = Schemas["StaffInvitation"];
+
+export const staffKey = ["admin", "staff"];
+
+export const useStaff = () => useQuery({ queryKey: staffKey, queryFn: () => unwrap(api.GET("/api/admin/staff")) });
+
+/** After accepting, the new staff member lands back on this app. */
+export const inviteStaff = (email: string, role: string) =>
+  unwrap(api.POST("/api/admin/staff/invitations", { body: { email, role, redirectUrl: window.location.origin } }));
+export const revokeInvitation = (id: string) =>
+  done(api.POST("/api/admin/staff/invitations/{id}/revoke", { params: { path: { id } } }));
+export const setStaffRole = (userId: string, role: string) =>
+  unwrap(api.PUT("/api/admin/staff/{userId}/role", { params: { path: { userId } }, body: { role } }));
+export const removeStaffAccess = (userId: string) =>
+  done(api.POST("/api/admin/staff/{userId}/remove-access", { params: { path: { userId } } }));
+export const rejectSignup = (userId: string) => done(api.DELETE("/api/admin/staff/{userId}", { params: { path: { userId } } }));

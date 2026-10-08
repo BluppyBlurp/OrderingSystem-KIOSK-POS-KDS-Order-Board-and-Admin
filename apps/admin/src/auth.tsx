@@ -8,6 +8,8 @@ export interface StaffSession {
   /** From Clerk's public metadata (or the dev role). The API checks the role claim in the session token itself. */
   role: string | null;
   getToken: () => Promise<string | null>;
+  /** Re-reads the user from Clerk (e.g. after a manager approved them) and gets a fresh token with the new role. */
+  refresh: () => Promise<void>;
   signOut: () => void;
 }
 
@@ -42,6 +44,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       name: `Dev ${devRole}`,
       role: devRole,
       getToken: async () => `devstaff_${devRole}`,
+      refresh: async () => {},
       signOut: () => {
         try {
           sessionStorage.removeItem(DEV_ROLE_KEY);
@@ -94,6 +97,10 @@ function ClerkGate({ children, devButtons }: { children: ReactNode; devButtons: 
       name: user.fullName || user.primaryEmailAddress?.emailAddress || "Staff",
       role: typeof role === "string" ? role : null,
       getToken: () => getToken(),
+      refresh: async () => {
+        await user.reload();
+        await getToken({ skipCache: true });
+      },
       signOut: () => void signOut(),
     };
   }, [isSignedIn, user, getToken, signOut]);

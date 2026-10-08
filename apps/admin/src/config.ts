@@ -7,5 +7,16 @@ export const config = {
 
 export const APP_TITLE = "Admin";
 
-/** Roles the API's Admin policy accepts. */
-export const ALLOWED_ROLES = ["manager", "admin"];
+/** Roles that can open the admin app (the API's BackOffice policy). */
+export const ALLOWED_ROLES = ["assistant_manager", "manager", "admin"];
+
+/** Edit the menu, options, devices and staff. Assistant managers get a read-only menu with availability/stock and reports. */
+export const MANAGER_ROLES = ["manager", "admin"];
+
+export const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  manager: "Manager",
+  assistant_manager: "Assistant manager",
+  cashier: "Cashier",
+  kitchen: "Kitchen",
+};

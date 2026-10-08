@@ -2,18 +2,22 @@ import { ApiError } from "@kiosk/api-client";
 import { useState } from "react";
 import { setTokenSource, useCategories } from "./api";
 import { useSession } from "./auth";
+import { PendingApproval } from "./components/PendingApproval";
 import { Button } from "./components/ui";
-import { ALLOWED_ROLES } from "./config";
+import { ALLOWED_ROLES, MANAGER_ROLES, ROLE_LABELS } from "./config";
 import { DevicesPage } from "./pages/DevicesPage";
 import { MenuPage } from "./pages/MenuPage";
 import { ModifiersPage } from "./pages/ModifiersPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { StaffPage } from "./pages/StaffPage";
 
+/** Assistant managers see the menu (availability and stock only) and reports; the rest is for managers and admins. */
 const TABS = [
-  { id: "menu", label: "Menu" },
-  { id: "modifiers", label: "Options" },
-  { id: "devices", label: "Devices" },
-  { id: "reports", label: "Reports" },
+  { id: "menu", label: "Menu", managersOnly: false },
+  { id: "modifiers", label: "Options", managersOnly: true },
+  { id: "devices", label: "Devices", managersOnly: true },
+  { id: "staff", label: "Staff", managersOnly: true },
+  { id: "reports", label: "Reports", managersOnly: false },
 ] as const;
 
 type Tab = (typeof TABS)[number]["id"];
@@ -21,6 +25,8 @@ type Tab = (typeof TABS)[number]["id"];
 export function App() {
   const session = useSession();
   setTokenSource(session.getToken); // before any query below runs
+
+  if (!session.role) return <PendingApproval name={session.name} onRefresh={session.refresh} onSignOut={session.signOut} />;
 
   if (session.role && !ALLOWED_ROLES.includes(session.role)) {
     return (
@@ -36,6 +42,8 @@ export function App() {
 function AdminScreen() {
   const session = useSession();
   const [tab, setTab] = useState<Tab>("menu");
+  const isManager = MANAGER_ROLES.includes(session.role ?? "");
+  const tabs = TABS.filter((t) => isManager || !t.managersOnly);
   const probe = useCategories(); // also tells us early whether the API accepts this sign-in
 
   if (probe.error instanceof ApiError && (probe.error.status === 401 || probe.error.status === 403)) {
@@ -57,7 +65,7 @@ function AdminScreen() {
         <div className="flex items-center gap-6">
           <h1 className="text-2xl font-black uppercase">Admin</h1>
           <nav className="flex gap-2">
-            {TABS.map((t) => (
+            {tabs.map((t) => (
               <Button key={t.id} variant={tab === t.id ? "solid" : "outline"} onClick={() => setTab(t.id)}>
                 {t.label}
               </Button>
@@ -65,14 +73,17 @@ function AdminScreen() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <span className="font-bold">{session.name}</span>
+          <span className="font-bold">
+            {session.name} · {ROLE_LABELS[session.role ?? ""] ?? session.role}
+          </span>
           <Button onClick={session.signOut}>Sign out</Button>
         </div>
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto">
-        {tab === "menu" && <MenuPage />}
-        {tab === "modifiers" && <ModifiersPage />}
-        {tab === "devices" && <DevicesPage />}
+        {tab === "menu" && <MenuPage canEdit={isManager} />}
+        {tab === "modifiers" && isManager && <ModifiersPage />}
+        {tab === "devices" && isManager && <DevicesPage />}
+        {tab === "staff" && isManager && <StaffPage />}
         {tab === "reports" && <ReportsPage />}
       </main>
     </div>
