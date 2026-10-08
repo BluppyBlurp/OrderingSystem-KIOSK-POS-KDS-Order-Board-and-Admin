@@ -1,0 +1,22 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# .NET build output
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Node
+node_modules/
+dist/
+
+# Local-only notes (credentials scratchpad, borrowed-PC cleanup list)
+others.md
+note.md
+
+# Claude Code local hook state
+.claude/hooks/.state/
