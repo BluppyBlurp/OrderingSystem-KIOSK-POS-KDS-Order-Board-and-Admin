@@ -79,7 +79,7 @@ React 19 + TypeScript 5.9 + Vite 8 · Tailwind CSS 4 · Zustand (cart/local UI s
 | Images + videos | **Cloudflare R2** | 10 GB storage, 1M Class A ops, 10M Class B ops, **zero egress** |
 | Staff auth | **Clerk** | Free tier covers the staff headcount |
 | Frontends (×5) | **Cloudflare Pages** | Static hosting |
-| .NET API | **Fly.io** or existing EC2 | — |
+| .NET API | **Render** (Docker web service) | Free instances sleep when idle; see §3.3 |
 | Errors | **Sentry** | Free tier |
 
 Local dev uses **portable PostgreSQL 17** started by `scripts/dev-db.ps1`, on **port 5433**: no Docker, no installer, no Windows service. It uses port 5433 because the dev PC already runs an unrelated Postgres on 5432. `docker-compose.yml` is kept for machines that do use Docker. There's no need to hit Neon while developing. `note.md` lists everything installed on the dev PC. Redis backplane for SignalR **only** if you run more than one API instance.
@@ -106,6 +106,15 @@ Video is where bandwidth caps kill free tiers. R2 does not charge egress at all,
 R2 has no on-the-fly image transforms — which this project does not need. Menu media is uploaded once by a manager, so **thumbnails and WebP variants are generated server-side in C# at upload time** (ImageSharp) and stored alongside the original. One vendor, one bucket, predictable cost.
 
 **Egress is a non-problem here by design.** A fixed set of kiosks requests the same menu images all day. With long `Cache-Control` max-age, content-hashed filenames and the kiosk service worker, each asset is fetched roughly once per device per deploy — not once per customer.
+
+### 3.3 Render for the API
+
+Render has no native .NET runtime, so the API deploys as a **Docker web service** from a `Dockerfile` on `main`.
+
+- **Sleeping.** Free instances spin down when idle, and the first request afterwards waits about a minute while it wakes. A customer at a kiosk won't wait that long, so production needs an always-on paid instance, or at least a keep-alive ping during trading hours (as with Neon's cold starts).
+- **Background job.** The order-expiry job only runs while the instance is awake. Overdue orders still expire on the first run after waking, because the job catches up.
+- **Config** comes from Render environment variables with the `__` separator: `ConnectionStrings__Default` (Neon pooled), `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__SecretKey`, `PayMongo__WebhookSecret`, and `Cors__Origins__0…n` (one per Cloudflare Pages domain). The health check path is `/health`.
+- **WebSockets** (SignalR) are supported on Render web services.
 
 ---
 
@@ -389,7 +398,7 @@ kiosk-system/
 │   └── tests/
 │       ├── Kiosk.UnitTests/
 │       └── Kiosk.IntegrationTests/
-└── frontend/                    # pnpm workspace (built so far: apps/kiosk, packages/api-client)
+└── frontend/                    # NOT on main: each app is its own frontend/* branch with this workspace at its root
     ├── apps/{kiosk,pos,kds,board,admin}/
     └── packages/
         ├── api-client/          # openapi.json snapshot + generated types + openapi-fetch client
@@ -397,7 +406,7 @@ kiosk-system/
         └── ui/                  # shared Tailwind components
 ```
 
-**Branches:** `main` holds the backend and docs. Each frontend app has its own branch (`frontend/kiosk`, `frontend/pos`, `frontend/kds`, `frontend/board`, `frontend/admin`) that contains `main` plus `frontend/`. Backend changes go to `main` first, and frontend branches merge `main` to pick them up.
+**Branches:** `main` holds the backend and docs and deploys to Render. Each frontend app has its own **frontend-only** branch (`frontend/kiosk`, `frontend/pos`, `frontend/kds`, `frontend/board`, `frontend/admin`), each deployed as its own Cloudflare Pages project. A frontend branch holds a pnpm workspace at its root (`apps/<app>`, `packages/api-client`) and no backend code; it talks to the API only through `packages/api-client/openapi.json`, a committed snapshot of the API contract. After an API change on `main`, the affected frontend branch runs `pnpm gen:api` and commits the refreshed snapshot. To run both locally, check the frontend branch out in a second folder with `git worktree` (see README).
 
 Dependency direction: `Api → Application → Domain`, `Infrastructure → Application`. `Domain` depends on nothing. Keeping that one-way is what makes the backend testable without a database.
 
@@ -474,3 +483,4 @@ Kiosks and boards have no human login. A manager registers the device in Admin, 
 | 2026-10-08 | Backend MVP built (Clean Architecture: Domain / Application / Infrastructure / Api with MVC controllers). Local dev moved off Docker to portable Postgres on port 5433. PayMongo Checkout Sessions for e-wallet **and** card. Added `cancel-checkout`, `tables/{n}`, reorder and device-revoke endpoints; documented the SignalR event set, Clerk setup steps and policy names. No order-number reset job needed. |
 | 2026-10-08 | Kiosk app built (React 19, black-and-white placeholder design). Added **dine in / take out** (`Order.diningOption`), **QR Ph** payment method, one-question-per-screen product customization, browser printing for slip and receipt, a Development-only demo menu and simulated payment. Fixed: item and modifier order is now stored (`OrderItem.lineNumber`, `OrderItemModifier.sortOrder`). |
 | 2026-10-08 | Branch layout: `main` = backend + docs; one `frontend/*` branch per app. |
+| 2026-10-08 | Hosting: API on **Render** (Docker web service; free instances sleep, see §3.3) instead of Fly.io. Frontend branches are now frontend-only (one Cloudflare Pages project each); `main` holds no frontend code. |

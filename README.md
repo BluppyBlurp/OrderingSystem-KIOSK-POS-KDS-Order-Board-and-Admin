@@ -5,16 +5,18 @@ Design and decisions: [`docs.md`](docs.md). Progress: [`checklist.md`](checklist
 
 ## Branches
 
-| Branch | Contains |
-|---|---|
-| `main` | Backend API, docs, dev scripts |
-| `frontend/kiosk` | `main` + the customer kiosk app (`frontend/apps/kiosk`) |
-| `frontend/pos` | Cashier POS *(not started)* |
-| `frontend/kds` | Kitchen display *(not started)* |
-| `frontend/board` | Customer order board *(not started)* |
-| `frontend/admin` | Admin back office *(not started)* |
+| Branch | Contains | Deploys to |
+|---|---|---|
+| `main` | Backend API, docs, dev scripts | Render |
+| `frontend/kiosk` | Customer kiosk (frontend only) | Cloudflare Pages |
+| `frontend/pos` | Cashier POS *(not started)* | Cloudflare Pages |
+| `frontend/kds` | Kitchen display *(not started)* | Cloudflare Pages |
+| `frontend/board` | Customer order board *(not started)* | Cloudflare Pages |
+| `frontend/admin` | Admin back office *(not started)* | Cloudflare Pages |
 
-Backend changes are committed to `main`. Each frontend branch then merges `main` (`git merge main`) to pick them up.
+Frontend branches contain no backend code. They reach the API through a typed client generated from
+`packages/api-client/openapi.json`, a committed snapshot of the API contract. After an API change, refresh it on the
+frontend branch with `pnpm gen:api` (with the API running).
 
 ## Run the backend (Windows, no Docker)
 
@@ -24,22 +26,20 @@ Backend changes are committed to `main`. Each frontend branch then merges `main`
 
 # 2. API on http://localhost:5202. In Development it migrates, seeds the demo menu and a dev kiosk token.
 dotnet run --project backend/src/Kiosk.Api
+
+# Tests (needs the dev database running)
+cd backend; dotnet test
+```
+
+## Run a frontend next to it
+
+Check the frontend branch out in a second folder, so the backend and frontend run side by side:
+
+```powershell
+git worktree add ../FoodOrderingKiosk-kiosk frontend/kiosk   # once
+cd ../FoodOrderingKiosk-kiosk
+pnpm install
+pnpm dev:kiosk                                               # http://localhost:5173
 ```
 
 Online payments use a stub until PayMongo keys are set. On the kiosk, **Simulate payment (dev)** completes the payment.
-
-## Run the kiosk
-
-```powershell
-git checkout frontend/kiosk
-cd frontend
-pnpm install
-pnpm dev:kiosk                     # http://localhost:5173
-```
-
-## Tests
-
-```powershell
-cd backend;  dotnet test           # unit + integration (needs the dev database running)
-cd frontend; pnpm test; pnpm typecheck   # on a frontend branch
-```

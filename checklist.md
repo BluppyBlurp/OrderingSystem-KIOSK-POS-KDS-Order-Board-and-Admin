@@ -2,7 +2,8 @@
 
 **Last updated:** 2026-10-08 (backend MVP built: 90 tests passing)
 **Runtime:** .NET 10 LTS (API) · React + Vite (frontends)
-**Infrastructure:** Neon (Postgres) · Cloudflare R2 (media) · Clerk (staff auth) · Cloudflare Pages (frontends) · Fly.io or EC2 (API) — all free tier
+**Infrastructure:** Neon (Postgres) · Cloudflare R2 (media) · Clerk (staff auth) · Cloudflare Pages (frontends) · **Render** (API)
+**Branches:** `main` = backend + docs · `frontend/kiosk`, `frontend/pos`, `frontend/kds`, `frontend/board`, `frontend/admin` = frontend only, one per app
 **Rule:** New requirements land here first (§Backlog), then `docs.md` is updated and its change log appended.
 **Legend:** `[ ]` todo · `[~]` in progress · `[x]` done · 🔴 blocker · ⭐ MVP-critical
 
@@ -195,8 +196,10 @@
 ## Milestone 9 — Release
 - [ ] Sales report endpoint + Admin reports page
 - [ ] Sentry on backend and all five frontends
-- [ ] Dockerfiles + production compose / deploy target
-- [ ] Frontends deployed to Cloudflare Pages, API to Fly.io (or existing EC2)
+- [ ] ⭐ API `Dockerfile` for Render (Render has no native .NET runtime; it deploys .NET as a Docker web service) (2026-10-08)
+- [ ] Render: env vars (`ConnectionStrings__Default` = Neon pooled, `Clerk__Authority`, `Slip__SigningKey`, `PayMongo__*`, `Cors__Origins__*` = Pages domains); health check `/health` (2026-10-08)
+- [ ] Decide the Render plan: free instances sleep when idle and take about a minute to wake, which a kiosk can't wait for (2026-10-08)
+- [ ] Frontends deployed to Cloudflare Pages (one project per `frontend/*` branch), API to Render
 - [ ] HTTPS, environment secrets, database backups verified restorable
 - [ ] Seed script: sample menu for demos
 - [ ] Runbook: how to re-register a kiosk, reprint a receipt, void an order

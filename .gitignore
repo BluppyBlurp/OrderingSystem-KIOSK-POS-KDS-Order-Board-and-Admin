@@ -2,8 +2,6 @@
 .env
 .env.*
 !.env.example
-# Frontend dev defaults (no secrets: local API URL and the dev-only kiosk token)
-!frontend/apps/*/.env.development
 
 # .NET build output
 bin/
