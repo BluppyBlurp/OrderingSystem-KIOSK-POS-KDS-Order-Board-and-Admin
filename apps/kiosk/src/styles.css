@@ -42,12 +42,22 @@ body,
 body {
   background: var(--color-paper);
   color: var(--color-ink);
-  font-synthesis-weight: none;
   /* Kiosk: no text selection, no long-press menus, no accidental zoom. */
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
   overscroll-behavior: none;
+}
+
+/*
+ * Menu-board type. Weight 900 is carried on the class rather than left to the font file, so a kiosk
+ * that can't reach Google Fonts still gets a heavy face from the system stack instead of a limp one.
+ */
+.display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
 /* The one shape motif: a clipped corner, like a torn ticket stub. */

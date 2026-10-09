@@ -60,7 +60,7 @@ function Wizard({
     <div className="flex items-center gap-4 border-b-3 border-line bg-card p-3 sm:p-5">
       <ProductImage name={product.name} category={categoryName} media={product.media} className="h-16 w-20 shrink-0 sm:h-20 sm:w-28" />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-[family-name:var(--font-display)] text-[length:var(--text-step-2)] leading-tight">
+        <p className="truncate display text-[length:var(--text-step-2)] leading-tight">
           {product.name}
         </p>
         <p className="text-[length:var(--text-step-0)] text-ink-soft">{money(price)} each</p>
@@ -95,7 +95,7 @@ function Wizard({
       >
         {header}
         <div className="p-4 sm:p-6">
-          <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)] leading-tight">{group.name}</h2>
+          <h2 className="display text-[length:var(--text-step-3)] leading-tight">{group.name}</h2>
           <p className="mb-5 text-[length:var(--text-step-0)] text-ink-soft">{pickHint(group)}</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 2xl:grid-cols-4">
             {group.modifiers.map((m) => {
@@ -107,7 +107,7 @@ function Wizard({
                   disabled={!m.isAvailable}
                   aria-pressed={on}
                   onClick={() => setSelection((s) => toggle(s, group, m.id))}
-                  className={`press notch-sm flex min-h-24 flex-col items-center justify-center gap-1 border-3 p-3 text-center text-[length:var(--text-step-1)] font-semibold disabled:opacity-30 sm:min-h-28 ${
+                  className={`press flex min-h-24 flex-col items-center justify-center gap-1 border-3 p-3 text-center text-[length:var(--text-step-1)] font-semibold disabled:opacity-30 sm:min-h-28 ${
                     on ? "border-brand bg-accent text-ink" : "border-line bg-card"
                   }`}
                 >
@@ -147,7 +147,7 @@ function Wizard({
       {header}
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-7 p-5 sm:p-8">
         <div className="w-full">
-          <h2 className="mb-3 font-[family-name:var(--font-display)] text-[length:var(--text-step-2)]">What you're getting</h2>
+          <h2 className="mb-3 display text-[length:var(--text-step-2)]">What you're getting</h2>
           {chosen.length === 0 ? (
             <p className="text-[length:var(--text-step-1)]">{product.name}</p>
           ) : (
@@ -169,7 +169,7 @@ function Wizard({
           <Button size="lg" className="w-16" disabled={quantity <= 1} onClick={() => setQuantity(quantity - 1)} aria-label="One less">
             −
           </Button>
-          <span className="w-20 text-center font-[family-name:var(--font-display)] text-[length:var(--text-step-4)] tabular-nums">
+          <span className="w-20 text-center display text-[length:var(--text-step-4)] tabular-nums">
             {quantity}
           </span>
           <Button

@@ -68,7 +68,7 @@ export function CheckoutScreen() {
       <div className="mx-auto flex max-w-4xl flex-col gap-6 p-5 sm:p-8">
         <p className="text-center">
           <span className="block text-[length:var(--text-step-1)] text-ink-soft">Amount due</span>
-          <span className="font-[family-name:var(--font-display)] text-[length:var(--text-step-5)] leading-none">
+          <span className="display text-[length:var(--text-step-5)] leading-none">
             {money(cartTotal(cart))}
           </span>
         </p>
@@ -76,7 +76,7 @@ export function CheckoutScreen() {
         <Button
           variant="choice"
           size="xl"
-          className="notch w-full flex-row items-center justify-start gap-5 text-left"
+          className="w-full flex-row items-center justify-start gap-5 text-left"
           disabled={busy}
           onClick={() => place("Cash")}
         >
@@ -93,7 +93,7 @@ export function CheckoutScreen() {
           <Button
             variant="choice"
             size="xl"
-            className="notch flex-row items-center justify-start gap-5 text-left"
+            className="flex-row items-center justify-start gap-5 text-left"
             disabled={busy}
             onClick={() => place("QrPh")}
           >
@@ -108,7 +108,7 @@ export function CheckoutScreen() {
           <Button
             variant="choice"
             size="xl"
-            className="notch flex-row items-center justify-start gap-5 text-left"
+            className="flex-row items-center justify-start gap-5 text-left"
             disabled={busy}
             onClick={() => place("Card")}
           >
@@ -125,7 +125,7 @@ export function CheckoutScreen() {
 
       {error && (
         <Modal>
-          <p className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)]">That didn't go through</p>
+          <p className="display text-[length:var(--text-step-3)]">That didn't go through</p>
           <p className="mt-3 text-[length:var(--text-step-1)] text-ink-soft">{error.message}</p>
           <div className="mt-7 grid grid-cols-2 gap-3">
             {error.backToCart ? (

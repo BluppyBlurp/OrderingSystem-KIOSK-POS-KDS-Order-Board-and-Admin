@@ -22,7 +22,8 @@ export function Button({ variant = "plain", size = "md", className = "", ...prop
     xl: "min-h-28 sm:min-h-36 px-6 sm:px-8 text-[length:var(--text-step-3)]",
   };
   const variants = {
-    primary: "bg-brand text-paper border-brand-deep shadow-[inset_0_-5px_0_var(--color-brand-deep)]",
+    primary:
+      "bg-brand text-paper border-brand-deep shadow-[inset_0_-5px_0_var(--color-brand-deep)] disabled:bg-paper-deep disabled:text-ink-soft disabled:border-paper-deep",
     choice: "bg-card text-ink border-line hover:bg-paper-deep",
     quiet: "bg-transparent text-ink-soft border-transparent underline underline-offset-4",
     plain: "bg-card text-ink border-line",
@@ -30,20 +31,28 @@ export function Button({ variant = "plain", size = "md", className = "", ...prop
   return (
     <button
       type="button"
-      className={`press border-3 font-semibold disabled:opacity-30 disabled:shadow-none ${sizes[size]} ${variants[variant]} ${className}`}
+      className={`press border-3 font-semibold disabled:opacity-100 disabled:shadow-none ${sizes[size]} ${variants[variant]} ${className}`}
       {...props}
     />
   );
 }
 
-/** The red strip across the top. The only place the awning stripe appears. */
+/** A folded paper corner — the house mark, and the same gesture as the clipped surfaces. */
+export function Mark({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M2 2 H22 V16 L14 22 H2 Z" fill="currentColor" />
+      <path d="M22 16 H14 V22 Z" fill="currentColor" opacity="0.45" />
+    </svg>
+  );
+}
+
+/** The red strip across the top. */
 export function BrandBar({ right }: { right?: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 bg-brand px-4 py-2 text-paper sm:px-6">
-      <span className="stripe h-7 w-7 shrink-0 border-2 border-paper" aria-hidden="true" />
-      <span className="font-[family-name:var(--font-display)] text-[length:var(--text-step-1)] tracking-tight">
-        {BRAND.name}
-      </span>
+    <div className="flex items-center gap-2.5 bg-brand px-4 py-2 text-paper sm:px-6">
+      <Mark className="h-6 w-6 shrink-0" />
+      <span className="display text-[length:var(--text-step-1)]">{BRAND.name}</span>
       {right && <div className="ml-auto flex items-center gap-3">{right}</div>}
     </div>
   );
@@ -74,7 +83,7 @@ export function Screen({
             </Button>
           )}
           {title && (
-            <h1 className="font-[family-name:var(--font-display)] text-[length:var(--text-step-2)] leading-none">
+            <h1 className="display text-[length:var(--text-step-2)] leading-none">
               {title}
             </h1>
           )}
@@ -90,7 +99,7 @@ export function Screen({
 export function Price({ value, className = "" }: { value: number; className?: string }) {
   return (
     <span
-      className={`notch-sm inline-block bg-accent px-3 py-1 font-[family-name:var(--font-display)] text-[length:var(--text-step-1)] text-ink ${className}`}
+      className={`notch-sm inline-block bg-accent px-3 py-1 display text-[length:var(--text-step-1)] text-ink ${className}`}
     >
       {money(value)}
     </span>
@@ -100,7 +109,7 @@ export function Price({ value, className = "" }: { value: number; className?: st
 export function Modal({ children }: { children: ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-5 sm:p-8">
-      <div className="notch w-full max-w-xl border-3 border-line bg-card p-6 text-center sm:p-8">{children}</div>
+      <div className="w-full max-w-xl border-3 border-line bg-card p-6 text-center sm:p-8">{children}</div>
     </div>
   );
 }

@@ -43,7 +43,7 @@ export function App() {
       <div className="flex h-full flex-col items-center justify-center gap-6 bg-paper p-8 text-center">
         {menu.isError ? (
           <>
-            <p className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)]">
+            <p className="display text-[length:var(--text-step-3)]">
               The menu isn't loading
             </p>
             <p className="text-[length:var(--text-step-1)] text-ink-soft">Check the connection, then try again.</p>
@@ -52,7 +52,7 @@ export function App() {
             </Button>
           </>
         ) : (
-          <p className="animate-pulse font-[family-name:var(--font-display)] text-[length:var(--text-step-2)]">
+          <p className="animate-pulse display text-[length:var(--text-step-2)]">
             Loading the menu…
           </p>
         )}

@@ -55,7 +55,7 @@ export function MenuScreen({ menu }: { menu: Menu }) {
                 type="button"
                 aria-current={on ? "true" : undefined}
                 onClick={() => setCategory(c.id)}
-                className={`press shrink-0 border-l-6 px-4 py-3 text-left font-[family-name:var(--font-display)] text-[length:var(--text-step-1)] whitespace-nowrap lg:w-full ${
+                className={`press shrink-0 border-l-6 px-4 py-3 text-left display text-[length:var(--text-step-1)] whitespace-nowrap lg:w-full ${
                   on ? "border-brand bg-accent text-ink" : "border-transparent text-ink-soft hover:bg-paper-deep"
                 }`}
               >
@@ -65,17 +65,17 @@ export function MenuScreen({ menu }: { menu: Menu }) {
           })}
         </nav>
 
-        <section className="grid flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto p-3 sm:grid-cols-3 sm:gap-4 sm:p-4 2xl:grid-cols-4">
+        <section className="grid flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto p-3 sm:gap-4 sm:p-4 xl:grid-cols-3 2xl:grid-cols-4">
           {active?.products.map((p) => (
             <button
               key={p.id}
               type="button"
               disabled={p.isSoldOut}
               onClick={() => customize(p.id)}
-              className="press notch relative flex flex-col border-3 border-line bg-card p-3 text-left disabled:opacity-45 sm:p-4"
+              className="press relative flex flex-col border-3 border-line bg-card p-3 text-left disabled:opacity-45 sm:p-4"
             >
-              <ProductImage name={p.name} category={active.name} media={p.media} className="h-24 w-full sm:h-32" />
-              <span className="mt-2 font-[family-name:var(--font-display)] text-[length:var(--text-step-1)] leading-tight">
+              <ProductImage name={p.name} category={active.name} media={p.media} className="h-24 w-full sm:h-32 lg:h-[13vh] xl:h-[15vh]" />
+              <span className="mt-2 display text-[length:var(--text-step-1)] leading-tight">
                 {p.name}
               </span>
               {p.description && (
@@ -85,7 +85,7 @@ export function MenuScreen({ menu }: { menu: Menu }) {
 
               {/* Sold-out items stay in place, greyed, so nothing jumps around mid-order (docs §12). */}
               {p.isSoldOut && (
-                <span className="absolute inset-x-0 top-1/3 -rotate-6 bg-ink py-2 text-center font-[family-name:var(--font-display)] text-[length:var(--text-step-1)] text-paper">
+                <span className="absolute inset-x-0 top-1/3 -rotate-6 bg-ink py-2 text-center display text-[length:var(--text-step-1)] text-paper">
                   Sold out
                 </span>
               )}

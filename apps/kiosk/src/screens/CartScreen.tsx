@@ -32,7 +32,7 @@ export function CartScreen({ menu }: { menu: Menu }) {
     >
       {cart.length === 0 ? (
         <div className="flex h-full flex-col items-center justify-center gap-5 p-8 text-center">
-          <p className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)]">Nothing here yet</p>
+          <p className="display text-[length:var(--text-step-3)]">Nothing here yet</p>
           <Button variant="primary" size="lg" className="notch-sm" onClick={() => go("menu")}>
             Browse the menu
           </Button>
@@ -43,7 +43,7 @@ export function CartScreen({ menu }: { menu: Menu }) {
             {cart.map((line) => (
               <li key={line.key} className="flex flex-wrap items-center gap-x-4 gap-y-3 bg-card p-4 sm:p-5">
                 <div className="min-w-48 flex-1">
-                  <p className="font-[family-name:var(--font-display)] text-[length:var(--text-step-1)] leading-tight">
+                  <p className="display text-[length:var(--text-step-1)] leading-tight">
                     {line.name}
                   </p>
                   {line.modifiers.map((m) => (
@@ -61,7 +61,7 @@ export function CartScreen({ menu }: { menu: Menu }) {
                   >
                     {line.quantity === 1 ? "✕" : "−"}
                   </Button>
-                  <span className="w-10 text-center font-[family-name:var(--font-display)] text-[length:var(--text-step-2)] tabular-nums">
+                  <span className="w-10 text-center display text-[length:var(--text-step-2)] tabular-nums">
                     {line.quantity}
                   </span>
                   <Button
@@ -74,7 +74,7 @@ export function CartScreen({ menu }: { menu: Menu }) {
                   </Button>
                 </div>
 
-                <p className="w-28 text-right font-[family-name:var(--font-display)] text-[length:var(--text-step-1)]">
+                <p className="w-28 text-right display text-[length:var(--text-step-1)]">
                   {money(lineTotal(line))}
                 </p>
               </li>
@@ -82,8 +82,8 @@ export function CartScreen({ menu }: { menu: Menu }) {
           </ul>
 
           <div className="flex items-center justify-between gap-4 p-5 sm:p-6">
-            <span className="font-[family-name:var(--font-display)] text-[length:var(--text-step-2)]">Total</span>
-            <span className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)]">
+            <span className="display text-[length:var(--text-step-2)]">Total</span>
+            <span className="display text-[length:var(--text-step-3)]">
               {money(cartTotal(cart))}
             </span>
           </div>
