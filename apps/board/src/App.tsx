@@ -2,7 +2,8 @@ import { ApiError } from "@kiosk/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BOARD_KEY, useBoard, verifyToken, type BoardEntry } from "./api";
-import { Button } from "./components/ui";
+import { BRAND } from "./brand";
+import { Button, Mark } from "./components/ui";
 import { cleanToken, clearDeviceToken, getDeviceToken, saveDeviceToken } from "./config";
 import { beep, soundEnabled, unlockSound } from "./lib/beep";
 import { newlyReady, shortNumber } from "./lib/board";
@@ -13,6 +14,20 @@ const HIGHLIGHT_MS = 15_000;
 export function App() {
   if (!getDeviceToken()) return <SetupScreen />;
   return <BoardScreen />;
+}
+
+/** A wall clock on the board saves customers asking how long they have been waiting. */
+function Clock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 15_000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span className="display text-[length:var(--text-step-2)] tabular-nums">
+      {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+    </span>
+  );
 }
 
 function BoardScreen() {
@@ -39,55 +54,116 @@ function BoardScreen() {
     return <SetupScreen error="This board's token was not accepted (revoked or mistyped). Enter a new one." />;
   }
 
+  const trouble =
+    hub === "connecting"
+      ? "Reconnecting…"
+      : hub === "offline"
+        ? "Offline — retrying"
+        : board.isError && !(board.error instanceof ApiError)
+          ? "Can't reach the server — showing the last update"
+          : null;
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="grid min-h-0 flex-1 grid-cols-2">
-        <Column title="Preparing" entries={board.data?.preparing ?? []} highlighted={new Set()} />
-        <Column title="Now serving" entries={board.data?.ready ?? []} highlighted={highlighted} inverted />
+    <div className="flex h-full flex-col bg-paper">
+      <header className="flex items-center gap-3 bg-brand px-5 py-2 text-paper">
+        <Mark className="h-7 w-7 shrink-0" />
+        <span className="display text-[length:var(--text-step-2)]">{BRAND.name}</span>
+        <div className="ml-auto flex items-center gap-5">
+          {trouble && <span className="text-[length:var(--text-step-0)] text-paper/85">{trouble}</span>}
+          {!sound && (
+            <Button
+              onClick={() => {
+                setSound(unlockSound());
+                beep();
+              }}
+            >
+              Turn on the chime
+            </Button>
+          )}
+          <Clock />
+        </div>
+      </header>
+
+      {/* A board is hung either way: side by side in landscape, stacked in portrait. */}
+      <div className="grid min-h-0 flex-1 grid-rows-2 landscape:grid-cols-2 landscape:grid-rows-1">
+        <Column
+          title="Preparing"
+          empty="Nothing cooking"
+          entries={board.data?.preparing ?? []}
+          highlighted={new Set()}
+        />
+        <Column
+          title="Ready — collect at the counter"
+          shortTitle="Ready"
+          empty="Nothing ready yet"
+          entries={board.data?.ready ?? []}
+          highlighted={highlighted}
+          loud
+        />
       </div>
-      <footer className="flex min-h-12 items-center justify-between border-t-4 border-black px-4 text-lg font-bold">
-        <span>{hub === "live" ? "" : hub === "connecting" ? "Reconnecting…" : "Offline — retrying"}</span>
-        {board.isError && !(board.error instanceof ApiError) && <span>Can't reach the server — showing the last update</span>}
-        {!sound && (
-          <Button
-            onClick={() => {
-              setSound(unlockSound());
-              beep();
-            }}
-          >
-            Tap to enable chime
-          </Button>
-        )}
-      </footer>
     </div>
   );
 }
 
+/**
+ * One side of the board. "Ready" is the loud one: amber is where the system says look here, and a
+ * standing customer should be able to find their number without reading the heading first.
+ */
 function Column({
   title,
+  shortTitle,
+  empty,
   entries,
   highlighted,
-  inverted = false,
+  loud = false,
 }: {
   title: string;
+  shortTitle?: string;
+  empty: string;
   entries: BoardEntry[];
   highlighted: Set<string>;
-  inverted?: boolean;
+  loud?: boolean;
 }) {
   return (
-    <section className={`flex min-h-0 flex-col ${inverted ? "bg-black text-white" : "border-r-4 border-black"}`}>
-      <h1 className={`border-b-4 p-6 text-center text-6xl font-black uppercase ${inverted ? "border-white" : "border-black"}`}>{title}</h1>
-      <div className="grid flex-1 auto-rows-min grid-cols-2 gap-6 overflow-hidden p-6">
-        {entries.map((e) => (
-          <div
-            key={e.orderNumber}
-            className={`flex flex-col items-center p-2 ${highlighted.has(e.orderNumber) ? "animate-pulse outline-8 outline-white" : ""}`}
-          >
-            <span className="text-8xl font-black tabular-nums">{shortNumber(e.orderNumber)}</span>
-            {e.type === "ServeToTable" && <span className="text-3xl font-bold">Table {e.tableNumber}</span>}
-          </div>
-        ))}
-      </div>
+    <section
+      className={`flex min-h-0 flex-col border-b-6 border-line last:border-b-0 landscape:border-b-0 landscape:border-r-6 landscape:last:border-r-0 ${
+        loud ? "bg-accent" : "bg-paper"
+      }`}
+    >
+      <h1
+        className={`border-b-3 border-line px-5 py-3 text-center display text-[length:var(--text-step-3)] ${
+          loud ? "text-ink" : "text-ink-soft"
+        }`}
+      >
+        <span className="hidden sm:inline">{title}</span>
+        <span className="sm:hidden">{shortTitle ?? title}</span>
+      </h1>
+
+      {entries.length === 0 ? (
+        <p className="flex flex-1 items-center justify-center p-6 text-center text-[length:var(--text-step-2)] text-ink-soft">
+          {empty}
+        </p>
+      ) : (
+        <div
+          className={`numbers grid flex-1 auto-rows-min content-start gap-x-4 gap-y-2 overflow-hidden p-4 ${
+            loud ? "grid-cols-2" : "grid-cols-2 landscape:xl:grid-cols-3"
+          }`}
+        >
+          {entries.map((e) => (
+            <div
+              key={e.orderNumber}
+              className={`flex min-w-0 flex-col items-center ${highlighted.has(e.orderNumber) ? "arrive" : ""}`}
+            >
+              <span className={`display leading-none tabular-nums ${loud ? "number-loud" : "number-quiet text-ink-soft"}`}>
+                {shortNumber(e.orderNumber)}
+              </span>
+              {e.type === "ServeToTable" && (
+                <span className="text-[length:var(--text-step-1)] font-semibold">Table {e.tableNumber}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -108,31 +184,58 @@ function SetupScreen({ error }: { error?: string }) {
     }
   };
 
+  const message =
+    status === "rejected"
+      ? "That token wasn't accepted. Copy the whole value and try again."
+      : status === "unreachable"
+        ? "Can't reach the server. If it was asleep it can take about a minute to wake up."
+        : error;
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 p-10 text-center">
-      <h1 className="text-5xl font-black uppercase">Order board setup</h1>
-      <p className="max-w-2xl text-xl">
-        In the Admin app, go to Devices, register a <b>Board</b>, and paste the token it shows (it starts with <code>dev_</code>).
-      </p>
-      {error && <p className="border-4 border-black p-3 text-xl font-bold">{error}</p>}
-      <input
-        className="w-full max-w-2xl border-4 border-black p-4 text-2xl"
-        placeholder="dev_…"
-        value={token}
-        onChange={(e) => setToken(e.target.value)}
-      />
-      <div className="flex gap-4">
-        <Button variant="solid" size="lg" disabled={!cleanToken(token) || status === "checking"} onClick={save}>
-          {status === "checking" ? "Checking…" : "Save"}
-        </Button>
-        {error && (
-          <Button size="lg" onClick={() => (clearDeviceToken(), location.reload())}>
-            Clear saved token
-          </Button>
+    <div className="flex h-full flex-col bg-paper">
+      <header className="flex items-center gap-3 bg-brand px-5 py-2 text-paper">
+        <Mark className="h-7 w-7 shrink-0" />
+        <span className="display text-[length:var(--text-step-2)]">{BRAND.name}</span>
+      </header>
+
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-5 p-8">
+        <h1 className="display text-[length:var(--text-step-4)]">Set up this board</h1>
+        <p className="text-[length:var(--text-step-1)] text-ink-soft">
+          In Admin, open Devices, register a <b>Board</b>, and paste the token it shows. It starts with{" "}
+          <code className="bg-paper-deep px-1">dev_</code>.
+        </p>
+        {message && (
+          <p className="border-3 border-brand bg-card p-4 text-[length:var(--text-step-0)] font-semibold text-brand">
+            {message}
+          </p>
         )}
+        <input
+          className="min-h-14 border-3 border-line bg-card px-4 text-[length:var(--text-step-1)] outline-none focus:border-brand"
+          placeholder="dev_…"
+          value={token}
+          onChange={(e) => {
+            setToken(e.target.value);
+            setStatus("idle");
+          }}
+          autoFocus
+        />
+        <div className="flex gap-3">
+          <Button
+            variant="primary"
+            size="lg"
+            className="notch-sm flex-1"
+            disabled={!cleanToken(token) || status === "checking"}
+            onClick={save}
+          >
+            {status === "checking" ? "Checking…" : "Save and start"}
+          </Button>
+          {error && (
+            <Button size="lg" onClick={() => (clearDeviceToken(), location.reload())}>
+              Clear saved token
+            </Button>
+          )}
+        </div>
       </div>
-      {status === "rejected" && <p className="text-xl font-bold">That token was not accepted. Check it and try again.</p>}
-      {status === "unreachable" && <p className="text-xl font-bold">Couldn't reach the server. Check the connection and try again.</p>}
     </div>
   );
 }
