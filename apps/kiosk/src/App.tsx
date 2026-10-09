@@ -40,16 +40,21 @@ export function App() {
 
   if (!menu.data) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-6 text-3xl font-bold">
+      <div className="flex h-full flex-col items-center justify-center gap-6 bg-paper p-8 text-center">
         {menu.isError ? (
           <>
-            <p>We can't load the menu right now.</p>
-            <Button variant="solid" size="lg" onClick={() => menu.refetch()}>
+            <p className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)]">
+              The menu isn't loading
+            </p>
+            <p className="text-[length:var(--text-step-1)] text-ink-soft">Check the connection, then try again.</p>
+            <Button variant="primary" size="lg" className="notch-sm" onClick={() => menu.refetch()}>
               Try again
             </Button>
           </>
         ) : (
-          <p>Loading menu…</p>
+          <p className="animate-pulse font-[family-name:var(--font-display)] text-[length:var(--text-step-2)]">
+            Loading the menu…
+          </p>
         )}
       </div>
     );

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import type { Menu } from "../api";
-import { Button, delta, money, Screen, Shape } from "../components/ui";
+import { ProductImage } from "../components/ProductImage";
+import { Button, delta, money, Screen } from "../components/ui";
 import { makeLine, MAX_QUANTITY } from "../lib/cart";
 import { initialSelection, isGroupValid, pickHint, selectedModifiers, toggle, unitPrice, type Product } from "../lib/customize";
 import { useKiosk } from "../store";
 
 /**
  * One question per screen, in the order the manager set (e.g. drink → upsize drink → upsize fries →
- * fries flavor → add-ons), then a final quantity + summary step with "Add to cart".
+ * fries flavor → add-ons), then a final quantity + summary step with "Add to tray".
  */
 export function CustomizeScreen({ menu }: { menu: Menu }) {
   const { customizingProductId, addToCart, closeCustomize } = useKiosk();
@@ -21,6 +22,18 @@ export function CustomizeScreen({ menu }: { menu: Menu }) {
 
   if (!product || !category) return null;
   return <Wizard key={product.id} product={product} categoryName={category.name} onAdd={addToCart} onCancel={closeCustomize} />;
+}
+
+/** Progress through the questions, as a row of bars rather than a count. */
+function Steps({ total, at }: { total: number; at: number }) {
+  if (total === 0) return null;
+  return (
+    <div className="flex gap-1" aria-label={`Step ${at + 1} of ${total + 1}`}>
+      {Array.from({ length: total + 1 }, (_, i) => (
+        <span key={i} className={`h-2 w-6 sm:w-10 ${i <= at ? "bg-brand" : "bg-paper-deep"}`} />
+      ))}
+    </div>
+  );
 }
 
 function Wizard({
@@ -44,44 +57,47 @@ function Wizard({
   const back = () => (step === 0 ? onCancel() : setStep(step - 1));
 
   const header = (
-    <div className="flex items-center gap-6 border-b-4 border-black p-6">
-      <div className="flex h-24 w-32 items-center justify-center">
-        <Shape kind={categoryName} />
-      </div>
-      <div className="flex-1">
-        <p className="text-3xl font-black">{product.name}</p>
-        <p className="text-xl">{money(price)} each</p>
-      </div>
-      {groups.length > 0 && (
-        <p className="text-lg font-bold">
-          {Math.min(step + 1, groups.length + 1)} / {groups.length + 1}
+    <div className="flex items-center gap-4 border-b-3 border-line bg-card p-3 sm:p-5">
+      <ProductImage name={product.name} category={categoryName} media={product.media} className="h-16 w-20 shrink-0 sm:h-20 sm:w-28" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-[family-name:var(--font-display)] text-[length:var(--text-step-2)] leading-tight">
+          {product.name}
         </p>
-      )}
+        <p className="text-[length:var(--text-step-0)] text-ink-soft">{money(price)} each</p>
+      </div>
+      <Steps total={groups.length} at={step} />
     </div>
   );
 
   if (group) {
     const picked = selection[group.id] ?? [];
     const valid = isGroupValid(group, selection);
+    const optional = picked.length === 0 && group.minSelect === 0;
     return (
       <Screen
         onBack={back}
         footer={
-          <div className="flex justify-between gap-4">
+          <div className="flex gap-3">
             <Button size="lg" onClick={onCancel}>
               Cancel
             </Button>
-            <Button variant="solid" size="lg" className="min-w-64" disabled={!valid} onClick={() => setStep(step + 1)}>
-              {picked.length === 0 && group.minSelect === 0 ? "No, thanks" : "Next"}
+            <Button
+              variant="primary"
+              size="lg"
+              className="notch-sm ml-auto flex-1 sm:flex-none sm:min-w-64"
+              disabled={!valid}
+              onClick={() => setStep(step + 1)}
+            >
+              {optional ? "No thanks" : "Next"}
             </Button>
           </div>
         }
       >
         {header}
-        <div className="p-6">
-          <h2 className="text-4xl font-black">{group.name}</h2>
-          <p className="mb-6 text-xl">{pickHint(group)}</p>
-          <div className="grid grid-cols-3 gap-4">
+        <div className="p-4 sm:p-6">
+          <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)] leading-tight">{group.name}</h2>
+          <p className="mb-5 text-[length:var(--text-step-0)] text-ink-soft">{pickHint(group)}</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 2xl:grid-cols-4">
             {group.modifiers.map((m) => {
               const on = picked.includes(m.id);
               return (
@@ -91,12 +107,14 @@ function Wizard({
                   disabled={!m.isAvailable}
                   aria-pressed={on}
                   onClick={() => setSelection((s) => toggle(s, group, m.id))}
-                  className={`flex min-h-28 flex-col items-center justify-center gap-1 border-4 border-black p-4 text-2xl font-bold active:translate-y-0.5 disabled:opacity-30 ${
-                    on ? "bg-black text-white" : "bg-white"
+                  className={`press notch-sm flex min-h-24 flex-col items-center justify-center gap-1 border-3 p-3 text-center text-[length:var(--text-step-1)] font-semibold disabled:opacity-30 sm:min-h-28 ${
+                    on ? "border-brand bg-accent text-ink" : "border-line bg-card"
                   }`}
                 >
                   {m.name}
-                  <span className="text-lg font-normal">{m.isAvailable ? delta(m.priceDelta) : "Sold out"}</span>
+                  <span className="text-[length:var(--text-step-0)] font-normal text-ink-soft">
+                    {m.isAvailable ? delta(m.priceDelta) || "Included" : "Sold out"}
+                  </span>
                 </button>
               );
             })}
@@ -111,39 +129,56 @@ function Wizard({
     <Screen
       onBack={groups.length ? back : onCancel}
       footer={
-        <div className="flex justify-between gap-4">
+        <div className="flex gap-3">
           <Button size="lg" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="solid" size="lg" className="min-w-80" onClick={() => onAdd(makeLine(product, selection, quantity))}>
-            Add to cart · {money(price * quantity)}
+          <Button
+            variant="primary"
+            size="lg"
+            className="notch-sm ml-auto flex-1 sm:flex-none sm:min-w-80"
+            onClick={() => onAdd(makeLine(product, selection, quantity))}
+          >
+            Add to tray · {money(price * quantity)}
           </Button>
         </div>
       }
     >
       {header}
-      <div className="flex flex-col items-center gap-8 p-8">
-        <div className="w-full max-w-2xl">
-          <h2 className="mb-2 text-3xl font-black">Your order</h2>
+      <div className="mx-auto flex max-w-2xl flex-col items-center gap-7 p-5 sm:p-8">
+        <div className="w-full">
+          <h2 className="mb-3 font-[family-name:var(--font-display)] text-[length:var(--text-step-2)]">What you're getting</h2>
           {chosen.length === 0 ? (
-            <p className="text-xl">{product.name}</p>
+            <p className="text-[length:var(--text-step-1)]">{product.name}</p>
           ) : (
-            <ul className="text-xl">
+            <ul className="border-3 border-line bg-card">
               {chosen.map((m) => (
-                <li key={m.id} className="flex justify-between border-b-2 border-black py-2">
+                <li
+                  key={m.id}
+                  className="flex justify-between gap-4 border-b-2 border-paper-deep px-4 py-3 text-[length:var(--text-step-1)] last:border-b-0"
+                >
                   <span>{m.name}</span>
-                  <span>{delta(m.priceDelta)}</span>
+                  <span className="text-ink-soft">{delta(m.priceDelta)}</span>
                 </li>
               ))}
             </ul>
           )}
         </div>
-        <div className="flex items-center gap-6">
-          <Button size="lg" className="w-20" disabled={quantity <= 1} onClick={() => setQuantity(quantity - 1)} aria-label="Less">
+
+        <div className="flex items-center gap-5">
+          <Button size="lg" className="w-16" disabled={quantity <= 1} onClick={() => setQuantity(quantity - 1)} aria-label="One less">
             −
           </Button>
-          <span className="w-24 text-center text-6xl font-black tabular-nums">{quantity}</span>
-          <Button size="lg" className="w-20" disabled={quantity >= MAX_QUANTITY} onClick={() => setQuantity(quantity + 1)} aria-label="More">
+          <span className="w-20 text-center font-[family-name:var(--font-display)] text-[length:var(--text-step-4)] tabular-nums">
+            {quantity}
+          </span>
+          <Button
+            size="lg"
+            className="w-16"
+            disabled={quantity >= MAX_QUANTITY}
+            onClick={() => setQuantity(quantity + 1)}
+            aria-label="One more"
+          >
             +
           </Button>
         </div>

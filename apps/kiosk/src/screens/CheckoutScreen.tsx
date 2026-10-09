@@ -6,6 +6,37 @@ import { cartTotal, toOrderLines } from "../lib/cart";
 import { useKiosk } from "../store";
 import { OrderSummaryBadge } from "./MenuScreen";
 
+const line = { stroke: "currentColor", strokeWidth: 3, fill: "none", strokeLinejoin: "round" as const };
+
+function CashIcon() {
+  return (
+    <svg viewBox="0 0 48 32" className="h-9 w-14" aria-hidden="true">
+      <rect x="2" y="4" width="44" height="24" rx="3" {...line} />
+      <circle cx="24" cy="16" r="6" {...line} />
+    </svg>
+  );
+}
+
+function PhoneIcon() {
+  return (
+    <svg viewBox="0 0 32 44" className="h-11 w-8" aria-hidden="true">
+      <rect x="2" y="2" width="28" height="40" rx="4" {...line} />
+      <path d="M12 36 L20 36" {...line} />
+      <rect x="9" y="11" width="14" height="14" {...line} />
+    </svg>
+  );
+}
+
+function CardIcon() {
+  return (
+    <svg viewBox="0 0 48 32" className="h-9 w-14" aria-hidden="true">
+      <rect x="2" y="4" width="44" height="24" rx="3" {...line} />
+      <path d="M2 12 L46 12" {...line} />
+      <path d="M9 21 L19 21" {...line} />
+    </svg>
+  );
+}
+
 export function CheckoutScreen() {
   const { cart, diningOption, orderType, tableNumber, setPlacedOrder, go } = useKiosk();
   const [busy, setBusy] = useState(false);
@@ -33,46 +64,80 @@ export function CheckoutScreen() {
   };
 
   return (
-    <Screen title="How will you pay?" onBack={() => go("cart")} footer={<div className="flex justify-center"><OrderSummaryBadge /></div>}>
-      <div className="flex flex-col items-center gap-8 p-8">
-        <p className="text-5xl font-black">Total {money(cartTotal(cart))}</p>
+    <Screen title="How will you pay?" onBack={() => go("cart")} badge={<OrderSummaryBadge />}>
+      <div className="mx-auto flex max-w-4xl flex-col gap-6 p-5 sm:p-8">
+        <p className="text-center">
+          <span className="block text-[length:var(--text-step-1)] text-ink-soft">Amount due</span>
+          <span className="font-[family-name:var(--font-display)] text-[length:var(--text-step-5)] leading-none">
+            {money(cartTotal(cart))}
+          </span>
+        </p>
 
-        <Button size="xl" className="w-full max-w-3xl" disabled={busy} onClick={() => place("Cash")}>
-          Pay at counter
-          <span className="block text-xl normal-case">Cash — show your slip to the cashier</span>
+        <Button
+          variant="choice"
+          size="xl"
+          className="notch w-full flex-row items-center justify-start gap-5 text-left"
+          disabled={busy}
+          onClick={() => place("Cash")}
+        >
+          <CashIcon />
+          <span>
+            Pay at the counter
+            <span className="block text-[length:var(--text-step-0)] font-normal text-ink-soft">
+              Take your printed slip to the cashier
+            </span>
+          </span>
         </Button>
 
-        <div className="w-full max-w-3xl">
-          <p className="mb-3 text-2xl font-black uppercase">Pay here</p>
-          <div className="grid grid-cols-2 gap-6">
-            <Button size="xl" disabled={busy} onClick={() => place("QrPh")}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Button
+            variant="choice"
+            size="xl"
+            className="notch flex-row items-center justify-start gap-5 text-left"
+            disabled={busy}
+            onClick={() => place("QrPh")}
+          >
+            <PhoneIcon />
+            <span>
               QR Ph
-              <span className="block text-xl normal-case">GCash, Maya or any bank app</span>
-            </Button>
-            <Button size="xl" disabled={busy} onClick={() => place("Card")}>
+              <span className="block text-[length:var(--text-step-0)] font-normal text-ink-soft">
+                GCash, Maya or your bank app
+              </span>
+            </span>
+          </Button>
+          <Button
+            variant="choice"
+            size="xl"
+            className="notch flex-row items-center justify-start gap-5 text-left"
+            disabled={busy}
+            onClick={() => place("Card")}
+          >
+            <CardIcon />
+            <span>
               Card
-              <span className="block text-xl normal-case">Visa or Mastercard</span>
-            </Button>
-          </div>
+              <span className="block text-[length:var(--text-step-0)] font-normal text-ink-soft">Visa or Mastercard</span>
+            </span>
+          </Button>
         </div>
-        {busy && <p className="text-2xl font-bold">Placing your order…</p>}
+
+        {busy && <p className="text-center text-[length:var(--text-step-1)] font-semibold">Placing your order…</p>}
       </div>
 
       {error && (
         <Modal>
-          <p className="text-3xl font-black">Sorry!</p>
-          <p className="mt-4 text-2xl">{error.message}</p>
-          <div className="mt-8 grid grid-cols-2 gap-4">
+          <p className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)]">That didn't go through</p>
+          <p className="mt-3 text-[length:var(--text-step-1)] text-ink-soft">{error.message}</p>
+          <div className="mt-7 grid grid-cols-2 gap-3">
             {error.backToCart ? (
-              <Button variant="solid" size="lg" className="col-span-2" onClick={() => go("cart")}>
-                Back to my order
+              <Button variant="primary" size="lg" className="col-span-2" onClick={() => go("cart")}>
+                Back to my tray
               </Button>
             ) : (
               <>
                 <Button size="lg" onClick={() => go("cart")}>
-                  Back
+                  Back to my tray
                 </Button>
-                <Button variant="solid" size="lg" onClick={() => setError(null)}>
+                <Button variant="primary" size="lg" onClick={() => setError(null)}>
                   Try again
                 </Button>
               </>

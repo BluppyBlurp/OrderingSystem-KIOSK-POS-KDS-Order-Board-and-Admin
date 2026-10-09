@@ -1,21 +1,65 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { getTableStatus, verifyDeviceToken } from "../api";
-import { Button, Modal, Screen, Shape } from "../components/ui";
+import { BRAND } from "../brand";
+import { FoodArt } from "../components/FoodArt";
+import { Button, Modal, Screen } from "../components/ui";
 import { cleanToken, config, savedTokenHint, saveDeviceToken } from "../config";
 import { useKiosk } from "../store";
 
 export function AttractScreen() {
   const go = useKiosk((s) => s.go);
   return (
-    <button type="button" className="flex h-full w-full flex-col items-center justify-center gap-12" onClick={() => go("dining")}>
-      <div className="flex w-full max-w-2xl items-end justify-center gap-8">
-        <Shape kind="rice meals" className="w-40!" />
-        <Shape kind="drinks" className="w-24!" />
-        <Shape kind="desserts" className="w-32!" />
+    <button
+      type="button"
+      onClick={() => go("dining")}
+      className="flex h-full w-full flex-col items-center justify-center gap-6 bg-paper px-6 py-10 text-center sm:gap-10"
+    >
+      <div className="flex w-full max-w-3xl items-end justify-center gap-2 sm:gap-6">
+        <FoodArt name="Spaghetti" className="w-1/4 max-w-56" />
+        <FoodArt name="1-pc Chicken Meal" className="w-2/5 max-w-80" />
+        <FoodArt name="Sundae" className="w-1/4 max-w-56" />
       </div>
-      <h1 className="text-7xl font-black uppercase">Order here</h1>
-      <p className="animate-pulse border-4 border-black px-10 py-6 text-3xl font-bold uppercase">Touch to start</p>
+
+      <div>
+        <h1 className="font-[family-name:var(--font-display)] text-[length:var(--text-step-6)] leading-[0.85] tracking-tight text-brand">
+          {BRAND.name}
+        </h1>
+        <p className="mt-2 text-[length:var(--text-step-2)] text-ink-soft">{BRAND.tagline}</p>
+      </div>
+
+      <p className="notch animate-pulse bg-brand px-8 py-4 font-[family-name:var(--font-display)] text-[length:var(--text-step-3)] text-paper sm:px-12 sm:py-6">
+        Touch to order
+      </p>
     </button>
+  );
+}
+
+/** Two big equal choices, stacked on a narrow screen and side by side once there is room. */
+function ChoicePair({ children }: { children: ReactNode }) {
+  return <div className="grid h-full grid-cols-1 content-center gap-5 p-5 sm:gap-8 sm:p-8 lg:grid-cols-2">{children}</div>;
+}
+
+const line = { stroke: "#241612", strokeWidth: 3, fill: "none", strokeLinejoin: "round" as const };
+
+/** Tray on a table. */
+function EatHereIcon() {
+  return (
+    <svg viewBox="0 0 64 48" className="h-14 w-20 sm:h-20 sm:w-28" aria-hidden="true">
+      <ellipse cx="32" cy="22" rx="22" ry="11" {...line} fill="#fff" />
+      <ellipse cx="32" cy="21" rx="12" ry="6" {...line} fill="#f5b700" />
+      <path d="M32 33 L32 44 M18 44 L46 44" {...line} />
+    </svg>
+  );
+}
+
+/** Takeaway box with a handle. */
+function TakeOutIcon() {
+  return (
+    <svg viewBox="0 0 64 48" className="h-14 w-20 sm:h-20 sm:w-28" aria-hidden="true">
+      <path d="M16 16 L48 16 L44 44 L20 44 Z" {...line} fill="#fff" />
+      <path d="M22 16 Q32 0 42 16" {...line} />
+      <path d="M16 24 L48 24" stroke="#b32317" strokeWidth="5" fill="none" />
+    </svg>
   );
 }
 
@@ -23,16 +67,16 @@ export function DiningScreen() {
   const { chooseDining, reset } = useKiosk();
   return (
     <Screen title="Where will you eat?" onBack={reset}>
-      <div className="grid h-full grid-cols-2 gap-8 p-10">
-        <Button size="xl" onClick={() => chooseDining("DineIn")} className="flex flex-col items-center justify-center gap-6">
-          <span className="aspect-square w-32 rounded-full border-8 border-black" />
-          Dine in
+      <ChoicePair>
+        <Button variant="choice" size="xl" onClick={() => chooseDining("DineIn")} className="notch flex-col gap-3">
+          <EatHereIcon />
+          Eat here
         </Button>
-        <Button size="xl" onClick={() => chooseDining("TakeOut")} className="flex flex-col items-center justify-center gap-6">
-          <span className="aspect-square w-28 border-8 border-black" />
+        <Button variant="choice" size="xl" onClick={() => chooseDining("TakeOut")} className="notch flex-col gap-3">
+          <TakeOutIcon />
           Take out
         </Button>
-      </div>
+      </ChoicePair>
     </Screen>
   );
 }
@@ -40,17 +84,17 @@ export function DiningScreen() {
 export function ServiceScreen() {
   const { chooseService, go } = useKiosk();
   return (
-    <Screen title="Dine in" onBack={() => go("dining")}>
-      <div className="grid h-full grid-cols-2 gap-8 p-10">
-        <Button size="xl" onClick={() => chooseService("CounterPickup")} className="flex flex-col items-center justify-center gap-4">
-          Pick up at counter
-          <span className="text-xl normal-case">We'll call your number</span>
+    <Screen title="How should we bring it?" onBack={() => go("dining")}>
+      <ChoicePair>
+        <Button variant="choice" size="xl" onClick={() => chooseService("CounterPickup")} className="notch flex-col gap-2">
+          Pick up at the counter
+          <span className="text-[length:var(--text-step-0)] font-normal text-ink-soft">We'll call your number</span>
         </Button>
-        <Button size="xl" onClick={() => chooseService("ServeToTable")} className="flex flex-col items-center justify-center gap-4">
-          Serve to my table
-          <span className="text-xl normal-case">Grab a number stand first</span>
+        <Button variant="choice" size="xl" onClick={() => chooseService("ServeToTable")} className="notch flex-col gap-2">
+          Bring it to my table
+          <span className="text-[length:var(--text-step-0)] font-normal text-ink-soft">Grab a number stand first</span>
         </Button>
-      </div>
+      </ChoicePair>
     </Screen>
   );
 }
@@ -81,44 +125,56 @@ export function TableScreen() {
 
   return (
     <Screen title="Your table number" onBack={() => go("service")}>
-      <div className="flex h-full flex-col items-center justify-center gap-6 p-6">
-        <p className="text-center text-2xl">
-          Take a number stand from the counter and enter its number ({config.tableMin}–{config.tableMax}).
+      <div className="mx-auto flex h-full max-w-lg flex-col items-center justify-center gap-5 p-5">
+        <p className="text-center text-[length:var(--text-step-1)] text-ink-soft">
+          Take a number stand from the counter, then key in its number.
         </p>
-        <div className="flex h-32 w-64 items-center justify-center border-8 border-black text-8xl font-black tabular-nums">
-          {digits || "–"}
+
+        <div className="notch flex h-24 w-48 items-center justify-center border-3 border-line bg-card font-[family-name:var(--font-display)] text-[length:var(--text-step-5)] tabular-nums sm:h-32 sm:w-64">
+          {digits || <span className="text-ink-soft/40">––</span>}
         </div>
-        <div className="grid w-96 grid-cols-3 gap-3">
+
+        <div className="grid w-full grid-cols-3 gap-2 sm:gap-3">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
-            <Button key={d} size="lg" onClick={() => press(d)}>
+            <Button key={d} size="lg" onClick={() => press(d)} className="font-[family-name:var(--font-display)]">
               {d}
             </Button>
           ))}
           <Button size="lg" onClick={() => setDigits("")}>
             Clear
           </Button>
-          <Button size="lg" onClick={() => press("0")}>
+          <Button size="lg" onClick={() => press("0")} className="font-[family-name:var(--font-display)]">
             0
           </Button>
-          <Button size="lg" onClick={() => setDigits((cur) => cur.slice(0, -1))} aria-label="Delete">
+          <Button size="lg" onClick={() => setDigits((cur) => cur.slice(0, -1))} aria-label="Delete last digit">
             ⌫
           </Button>
         </div>
-        <Button variant="solid" size="lg" className="w-96" disabled={!valid || checking} onClick={confirm}>
+
+        <Button variant="primary" size="lg" className="notch-sm w-full" disabled={!valid || checking} onClick={confirm}>
           {checking ? "Checking…" : "Confirm"}
         </Button>
+        {digits !== "" && !valid && (
+          <p className="text-[length:var(--text-step-0)] text-brand">
+            Stands run from {config.tableMin} to {config.tableMax}.
+          </p>
+        )}
       </div>
 
       {inUseWarning && (
         <Modal>
-          <p className="text-3xl font-black">Table {value} is already in use.</p>
-          <p className="mt-4 text-xl">Continue with this number?</p>
-          <div className="mt-8 grid grid-cols-2 gap-4">
+          <p className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)]">
+            Table {value} is already taken
+          </p>
+          <p className="mt-3 text-[length:var(--text-step-1)] text-ink-soft">
+            Another order is using this stand. Use it anyway?
+          </p>
+          <div className="mt-7 grid grid-cols-2 gap-3">
             <Button size="lg" onClick={() => setInUseWarning(false)}>
-              Change
+              Pick another
             </Button>
-            <Button variant="solid" size="lg" onClick={() => setTable(value)}>
-              Continue
+            <Button variant="primary" size="lg" onClick={() => setTable(value)}>
+              Use it
             </Button>
           </div>
         </Modal>
@@ -133,8 +189,8 @@ const setupMessages = {
 };
 
 /**
- * First run, or when the API rejects the saved token. The token is checked with the API before it is saved,
- * so a typo shows up here instead of after the customer touches Start.
+ * First run, or when the API rejects the saved token. The token is checked with the API before it is
+ * saved, so a typo shows up here instead of after a customer touches Start.
  */
 export function SetupScreen({ error }: { error?: string }) {
   const [token, setToken] = useState("");
@@ -159,12 +215,18 @@ export function SetupScreen({ error }: { error?: string }) {
       : error && (hint ? `${error} The saved token ends in …${hint}.` : error);
 
   return (
-    <Screen title="Kiosk setup">
-      <div className="mx-auto flex max-w-xl flex-col gap-6 p-10">
-        <p className="text-xl">Enter the device token shown when this kiosk was registered in the Admin app.</p>
-        {message && <p className="border-4 border-black p-4 text-lg font-bold">{message}</p>}
+    <Screen title="Set up this kiosk">
+      <div className="mx-auto flex max-w-xl flex-col gap-5 p-6 sm:p-10">
+        <p className="text-[length:var(--text-step-1)] text-ink-soft">
+          Enter the device token shown when this kiosk was registered in Admin.
+        </p>
+        {message && (
+          <p className="notch-sm border-3 border-brand bg-card p-4 text-[length:var(--text-step-0)] font-semibold text-brand">
+            {message}
+          </p>
+        )}
         <input
-          className="min-h-16 border-4 border-black px-4 text-xl"
+          className="min-h-14 border-3 border-line bg-card px-4 text-[length:var(--text-step-1)] outline-none focus:border-brand"
           value={token}
           onChange={(e) => {
             setToken(e.target.value);
@@ -174,12 +236,13 @@ export function SetupScreen({ error }: { error?: string }) {
           autoFocus
         />
         <Button
-          variant="solid"
+          variant="primary"
           size="lg"
+          className="notch-sm"
           disabled={!candidate.startsWith("dev_") || candidate.length < 36 || status === "checking"}
           onClick={save}
         >
-          {status === "checking" ? "Checking…" : "Save"}
+          {status === "checking" ? "Checking…" : "Save and start"}
         </Button>
       </div>
     </Screen>

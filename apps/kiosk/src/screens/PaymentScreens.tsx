@@ -13,11 +13,22 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-di
 
 function WhereToWait({ order }: { order: KioskOrder["order"] }) {
   return (
-    <p className="text-2xl">
+    <p className="text-[length:var(--text-step-1)] text-ink-soft">
       {order.type === "ServeToTable"
         ? `We'll bring your food to table ${order.tableNumber}.`
-        : "Watch the screen — we'll call your number at the counter."}
+        : "Watch the board — we'll call your number at the counter."}
     </p>
+  );
+}
+
+/** The order number, set as the largest thing on the screen because it is what the customer needs. */
+function OrderNumber({ value }: { value: string }) {
+  return (
+    <div className="notch border-3 border-line bg-card px-8 py-3 sm:px-14">
+      <span className="font-[family-name:var(--font-display)] text-[length:var(--text-step-6)] leading-none text-brand">
+        {value}
+      </span>
+    </div>
   );
 }
 
@@ -32,22 +43,28 @@ export function CashSlipScreen() {
   return (
     <Screen
       footer={
-        <div className="flex items-center justify-between">
-          <span className="text-lg">Returning to start in {left}s</span>
-          <Button variant="solid" size="lg" onClick={reset}>
+        <div className="flex items-center gap-3">
+          <span className="text-[length:var(--text-step-0)] text-ink-soft">Starting over in {left}s</span>
+          <Button variant="primary" size="lg" className="notch-sm ml-auto" onClick={reset}>
             Done
           </Button>
         </div>
       }
     >
-      <div className="flex flex-col items-center gap-6 p-8 text-center">
-        <p className="text-4xl font-black uppercase">Please pay at the counter</p>
-        <p className="text-2xl">Your order number</p>
-        <p className="border-8 border-black px-10 text-9xl font-black">{order.orderNumber}</p>
-        <p className="text-4xl font-black">{money(order.total)}</p>
-        {slipToken && <QRCodeSVG value={slipToken} size={220} />}
-        <p className="text-xl">
-          Take your printed slip to the cashier before {time(order.expiresAt)}. Your order goes to the kitchen once paid.
+      <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 p-5 text-center sm:gap-5 sm:p-8">
+        <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)] leading-tight">
+          Pay at the counter
+        </h2>
+        <p className="text-[length:var(--text-step-1)] text-ink-soft">Your order number</p>
+        <OrderNumber value={order.orderNumber} />
+        <p className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)]">{money(order.total)}</p>
+        {slipToken && (
+          <div className="border-3 border-line bg-card p-3">
+            <QRCodeSVG value={slipToken} size={200} />
+          </div>
+        )}
+        <p className="text-[length:var(--text-step-0)] text-ink-soft">
+          Take your slip to the cashier before {time(order.expiresAt)}. We start cooking once it's paid.
         </p>
         <WhereToWait order={order} />
       </div>
@@ -82,7 +99,7 @@ export function OnlinePayScreen() {
   if (!placedOrder) return null;
   const { order, checkoutUrl } = placedOrder;
   const method = order.paymentMethod === "Card" ? "Card" : "QrPh";
-  const methodLabel = method === "Card" ? "card" : "QR Ph (GCash, Maya or your bank app)";
+  const methodLabel = method === "Card" ? "card" : "QR Ph";
 
   const run = async (action: () => Promise<KioskOrder>, screen: "onlinePay" | "cashSlip") => {
     setBusy(true);
@@ -110,9 +127,9 @@ export function OnlinePayScreen() {
   if (status === "Expired" || status === "Cancelled") {
     return (
       <Modal>
-        <p className="text-3xl font-black">This payment timed out.</p>
-        <p className="mt-4 text-xl">Nothing was charged. Please start a new order.</p>
-        <Button variant="solid" size="lg" className="mt-8 w-full" onClick={reset}>
+        <p className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)]">This payment timed out</p>
+        <p className="mt-3 text-[length:var(--text-step-1)] text-ink-soft">Nothing was charged. Please start a new order.</p>
+        <Button variant="primary" size="lg" className="notch-sm mt-7 w-full" onClick={reset}>
           Start over
         </Button>
       </Modal>
@@ -122,26 +139,32 @@ export function OnlinePayScreen() {
   if (status === "Failed") {
     return (
       <Screen>
-        <div className="flex flex-col items-center gap-6 p-10 text-center">
-          <p className="text-4xl font-black uppercase">The payment didn't go through</p>
-          <p className="text-2xl">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 p-5 text-center sm:p-10">
+          <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)] leading-tight">
+            The payment didn't go through
+          </h2>
+          <p className="text-[length:var(--text-step-1)] text-ink-soft">
             {method === "Card"
-              ? "Your card may have been declined. You can try again, use another card, or pay at the counter."
-              : "You can try again or pay at the counter."}
+              ? "Your card may have been declined. Try again, use another card, or pay at the counter."
+              : "Try again, or pay at the counter instead."}
           </p>
-          <p className="text-xl">Nothing has been charged. Order {order.orderNumber} is kept until {time(order.expiresAt)}.</p>
-          <div className="grid w-full max-w-3xl grid-cols-2 gap-6">
-            <Button size="xl" disabled={busy} onClick={retry}>
-              Try again
-              <span className="block text-xl normal-case">{method === "Card" ? "Card" : "QR Ph"}</span>
+          <p className="text-[length:var(--text-step-0)] text-ink-soft">
+            Nothing has been charged. Order {order.orderNumber} is held until {time(order.expiresAt)}.
+          </p>
+          <div className="grid w-full gap-4 sm:grid-cols-2">
+            <Button variant="choice" size="xl" className="notch" disabled={busy} onClick={retry}>
+              Try {methodLabel} again
             </Button>
-            <Button variant="solid" size="xl" disabled={busy} onClick={switchToCash}>
-              Pay at counter
-              <span className="block text-xl normal-case">Cash</span>
+            <Button variant="primary" size="xl" className="notch" disabled={busy} onClick={switchToCash}>
+              Pay at the counter
             </Button>
           </div>
-          {error && <p className="border-4 border-black p-3 text-xl font-bold">{error}</p>}
-          <Button variant="ghost" disabled={busy} onClick={reset}>
+          {error && (
+            <p className="notch-sm border-3 border-brand bg-card p-3 text-[length:var(--text-step-0)] font-semibold text-brand">
+              {error}
+            </p>
+          )}
+          <Button variant="quiet" disabled={busy} onClick={reset}>
             Start over
           </Button>
         </div>
@@ -152,34 +175,46 @@ export function OnlinePayScreen() {
   return (
     <Screen
       footer={
-        <div className="flex items-center justify-between gap-4">
-          <Button size="lg" disabled={busy} onClick={backOut}>
-            Cancel payment
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button disabled={busy} onClick={backOut}>
+            Cancel
           </Button>
           {config.isDev && (
-            <Button size="lg" disabled={busy} onClick={() => simulatePayment(order.id).catch((e: Error) => setError(e.message))}>
+            <Button disabled={busy} onClick={() => simulatePayment(order.id).catch((e: Error) => setError(e.message))}>
               Simulate payment (dev)
             </Button>
           )}
-          <Button size="lg" disabled={busy} onClick={switchToCash}>
-            Pay at counter instead
+          <Button className="ml-auto" disabled={busy} onClick={switchToCash}>
+            Pay at the counter instead
           </Button>
         </div>
       }
     >
-      <div className="flex flex-col items-center gap-6 p-8 text-center">
-        <p className="text-4xl font-black uppercase">Scan to pay with your phone</p>
-        <p className="text-2xl">Pay {money(order.total)} by {methodLabel}</p>
+      <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 p-5 text-center sm:gap-5 sm:p-8">
+        <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-step-3)] leading-tight">
+          Scan to pay with your phone
+        </h2>
+        <p className="text-[length:var(--text-step-1)] text-ink-soft">
+          {money(order.total)} by {methodLabel}
+        </p>
         {checkoutUrl ? (
-          <div className="border-8 border-black p-4">
-            <QRCodeSVG value={checkoutUrl} size={300} />
+          <div className="border-3 border-line bg-card p-4">
+            <QRCodeSVG value={checkoutUrl} size={260} />
           </div>
         ) : (
-          <p className="text-xl">Preparing payment…</p>
+          <p className="text-[length:var(--text-step-1)]">Getting the code ready…</p>
         )}
-        <p className="text-xl">Order {order.orderNumber} · pay before {time(order.expiresAt)}</p>
-        <p className="animate-pulse text-2xl font-bold">Waiting for payment…</p>
-        {error && <p className="border-4 border-black p-3 text-xl font-bold">{error}</p>}
+        <p className="text-[length:var(--text-step-0)] text-ink-soft">
+          Order {order.orderNumber} · pay before {time(order.expiresAt)}
+        </p>
+        <p className="animate-pulse font-[family-name:var(--font-display)] text-[length:var(--text-step-1)]">
+          Waiting for payment…
+        </p>
+        {error && (
+          <p className="notch-sm border-3 border-brand bg-card p-3 text-[length:var(--text-step-0)] font-semibold text-brand">
+            {error}
+          </p>
+        )}
       </div>
     </Screen>
   );
@@ -196,20 +231,22 @@ export function ReceiptScreen() {
   return (
     <Screen
       footer={
-        <div className="flex items-center justify-between">
-          <span className="text-lg">Returning to start in {left}s</span>
-          <Button variant="solid" size="lg" onClick={reset}>
+        <div className="flex items-center gap-3">
+          <span className="text-[length:var(--text-step-0)] text-ink-soft">Starting over in {left}s</span>
+          <Button variant="primary" size="lg" className="notch-sm ml-auto" onClick={reset}>
             Done
           </Button>
         </div>
       }
     >
-      <div className="flex flex-col items-center gap-6 p-10 text-center">
-        <p className="text-5xl font-black uppercase">Thank you!</p>
-        <p className="text-2xl">Payment received · your order number</p>
-        <p className="border-8 border-black px-10 text-9xl font-black">{order.orderNumber}</p>
+      <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 p-5 text-center sm:gap-6 sm:p-10">
+        <h2 className="font-[family-name:var(--font-display)] text-[length:var(--text-step-4)] leading-none text-brand">
+          Salamat!
+        </h2>
+        <p className="text-[length:var(--text-step-1)] text-ink-soft">Paid. Your order number is</p>
+        <OrderNumber value={order.orderNumber} />
         <WhereToWait order={order} />
-        <p className="text-xl">Please take your receipt.</p>
+        <p className="text-[length:var(--text-step-0)] text-ink-soft">Please take your receipt.</p>
       </div>
       <PrintableReceipt kioskOrder={placedOrder} />
     </Screen>
