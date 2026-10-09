@@ -1,6 +1,7 @@
 import { ClerkProvider, SignIn, useAuth, useUser } from "@clerk/react";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { Button } from "./components/ui";
+import { BRAND } from "./brand";
+import { Button, Mark } from "./components/ui";
 import { config, POS_ROLES } from "./config";
 
 export interface StaffSession {
@@ -74,7 +75,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (!config.clerkKey) {
     return (
       <SignInLayout>
-        {devButtons ?? <p className="text-xl">Sign-in isn't configured: set VITE_CLERK_PUBLISHABLE_KEY.</p>}
+        {devButtons ?? <p className="text-[length:var(--text-step-1)] text-ink-soft">Sign-in isn't configured: set VITE_CLERK_PUBLISHABLE_KEY.</p>}
       </SignInLayout>
     );
   }
@@ -108,7 +109,7 @@ function ClerkGate({ children, devButtons }: { children: ReactNode; devButtons: 
   if (!isLoaded) {
     return (
       <SignInLayout>
-        <p>Loading sign-in…</p>
+        <p className="text-[length:var(--text-step-1)] text-ink-soft">Loading sign-in…</p>
         {devButtons}
       </SignInLayout>
     );
@@ -126,21 +127,27 @@ function ClerkGate({ children, devButtons }: { children: ReactNode; devButtons: 
 
 function SignInLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-full flex-col items-center justify-center gap-8 p-8">
-      <h1 className="text-5xl font-black uppercase">Cashier POS</h1>
-      {children}
+    <div className="flex min-h-full flex-col bg-paper">
+      <header className="flex items-center gap-2.5 bg-brand px-4 py-2 text-paper">
+        <Mark className="h-6 w-6 shrink-0" />
+        <span className="display text-[length:var(--text-step-1)]">{BRAND.name}</span>
+      </header>
+      <div className="flex flex-1 flex-col items-center justify-center gap-7 p-6 sm:p-8">
+        <h1 className="display text-[length:var(--text-step-4)]">Cashier till</h1>
+        {children}
+      </div>
     </div>
   );
 }
 
 function DevSignIn({ onPick }: { onPick: (role: string) => void }) {
   return (
-    <div className="flex flex-col items-center gap-3 border-4 border-dashed border-black p-6">
-      <p className="font-bold uppercase">Dev sign-in (development only)</p>
-      <div className="flex gap-3">
+    <div className="flex flex-col items-center gap-3 border-3 border-dashed border-ink-soft p-5">
+      <p className="text-[length:var(--text-step-0)] text-ink-soft">Development sign-in — not available in production</p>
+      <div className="flex flex-wrap justify-center gap-2">
         {POS_ROLES.map((role) => (
           <Button key={role} onClick={() => onPick(role)}>
-            {role}
+            {role.replace("_", " ")}
           </Button>
         ))}
       </div>

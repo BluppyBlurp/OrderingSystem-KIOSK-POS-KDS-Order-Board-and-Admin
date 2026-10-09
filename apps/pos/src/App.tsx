@@ -3,12 +3,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { PENDING_KEY, setTokenSource, SHIFT_KEY, usePendingOrders, type Order } from "./api";
 import { useSession } from "./auth";
+import { BRAND } from "./brand";
 import { OrderPanel } from "./components/OrderPanel";
 import { PendingList } from "./components/PendingList";
 import { ScanBox } from "./components/ScanBox";
 import { ShiftSummaryPanel } from "./components/ShiftSummary";
 import { PendingApproval } from "./components/PendingApproval";
-import { Button } from "./components/ui";
+import { Button, Mark } from "./components/ui";
 import { POS_ROLES } from "./config";
 import { usePosHub } from "./realtime";
 
@@ -58,22 +59,27 @@ function PosScreen() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex min-h-16 items-center justify-between gap-4 border-b-4 border-black px-4">
-        <h1 className="text-2xl font-black uppercase">Cashier POS</h1>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-2 text-sm font-bold uppercase" title="Live updates">
-            <span className={`inline-block size-3 rounded-full border-2 border-black ${hub === "live" ? "bg-black" : "bg-white"}`} />
-            {hub === "live" ? "Live" : hub === "connecting" ? "Connecting…" : "Offline (refreshing every 15 s)"}
-          </span>
-          <span className="font-bold">{session.name}</span>
+    <div className="flex h-full flex-col bg-paper">
+      <header className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-2 bg-brand px-4 py-2 text-paper">
+        <Mark className="h-6 w-6 shrink-0" />
+        <span className="display text-[length:var(--text-step-1)]">{BRAND.name} till</span>
+        <span className="flex items-center gap-2 text-[length:var(--text-step-0)]">
+          <span
+            className={`inline-block size-3 rounded-full ${hub === "live" ? "bg-accent" : "border-2 border-paper/70"}`}
+            aria-hidden="true"
+          />
+          {hub === "live" ? "Live" : hub === "connecting" ? "Connecting…" : "Offline — refreshing every 15s"}
+        </span>
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-[length:var(--text-step-0)]">{session.name}</span>
           <Button onClick={() => setShowShift(true)}>Shift</Button>
           <Button onClick={session.signOut}>Sign out</Button>
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <aside className="flex w-96 shrink-0 flex-col border-r-4 border-black">
+      {/* The queue sits beside the sale on a till; it moves above it on a narrow screen. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <aside className="flex max-h-[45vh] shrink-0 flex-col border-b-3 border-line lg:max-h-none lg:w-96 lg:border-r-3 lg:border-b-0">
           <ScanBox onFound={setSelected} focusKey={selected?.id ?? "none"} />
           <PendingList
             orders={pending.data ?? []}
@@ -95,7 +101,12 @@ function PosScreen() {
               onChanged={refresh}
             />
           ) : (
-            <p className="p-10 text-center text-2xl">Scan the customer's slip, type the order number, or pick an order from the list.</p>
+            <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+              <p className="display text-[length:var(--text-step-2)]">Ready for the next customer</p>
+              <p className="max-w-md text-[length:var(--text-step-1)] text-ink-soft">
+                Scan their slip, type the order number, or pick one from the queue.
+              </p>
+            </div>
           )}
         </main>
       </div>
@@ -106,9 +117,9 @@ function PosScreen() {
 
 function NoAccess({ message, onSignOut }: { message: string; onSignOut: () => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 p-10 text-center">
-      <p className="max-w-2xl text-2xl font-bold">{message}</p>
-      <Button variant="solid" size="lg" onClick={onSignOut}>
+    <div className="flex h-full flex-col items-center justify-center gap-6 bg-paper p-10 text-center">
+      <p className="max-w-2xl text-[length:var(--text-step-1)] font-semibold">{message}</p>
+      <Button variant="primary" size="lg" className="notch-sm" onClick={onSignOut}>
         Sign out
       </Button>
     </div>

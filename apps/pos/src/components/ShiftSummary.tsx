@@ -30,12 +30,12 @@ export function ShiftSummaryPanel({ cashier, onClose }: { cashier: string; onClo
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-white/80 p-8" role="dialog" aria-label="Shift summary">
-      <div className="flex w-full max-w-2xl flex-col gap-6 border-8 border-black bg-white p-6">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/60 p-4 sm:p-8" role="dialog" aria-label="Shift summary">
+      <div className="flex max-h-full w-full max-w-2xl flex-col gap-5 overflow-y-auto border-3 border-line bg-card p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-black uppercase">Shift summary</h2>
-            <p className="text-lg">
+            <h2 className="display text-[length:var(--text-step-3)]">Shift summary</h2>
+            <p className="text-[length:var(--text-step-0)] text-ink-soft">
               {cashier} ·{" "}
               {data ? `${since ? "since" : "today, since"} ${time(data.from)} · as of ${time(data.to)}` : "loading…"}
             </p>
@@ -46,17 +46,17 @@ export function ShiftSummaryPanel({ cashier, onClose }: { cashier: string; onClo
         </div>
 
         {summary.isError && (
-          <p className="border-4 border-black p-3 text-xl font-bold">
+          <p className="border-3 border-brand bg-card p-3 text-[length:var(--text-step-0)] font-semibold text-brand">
             Couldn't load the summary. {summary.error instanceof Error ? summary.error.message : ""}
           </p>
         )}
 
         {data && (
           <>
-            <div className="border-4 border-black p-5">
-              <p className="text-lg font-bold uppercase">Your cash in the drawer</p>
-              <p className="text-6xl font-black tabular-nums">{money(data.mine.cashCollected)}</p>
-              <p className="text-xl">
+            <div className="border-3 border-line bg-accent p-5">
+              <p className="text-[length:var(--text-step-0)] font-semibold">Your cash in the drawer</p>
+              <p className="display text-[length:var(--text-step-5)] leading-none tabular-nums">{money(data.mine.cashCollected)}</p>
+              <p className="mt-1 text-[length:var(--text-step-0)]">
                 {data.mine.orders} cash {data.mine.orders === 1 ? "order" : "orders"}
               </p>
             </div>
@@ -64,7 +64,7 @@ export function ShiftSummaryPanel({ cashier, onClose }: { cashier: string; onClo
               <Stat label="Whole counter" value={money(data.allCashiers.cashCollected)} note={`${data.allCashiers.orders} ${data.allCashiers.orders === 1 ? "order" : "orders"}, all cashiers, same period`} />
               <Stat label="Voided by you" value={String(data.cancelledByMe)} note="unpaid orders cancelled" />
             </div>
-            <p className="text-base">
+            <p className="text-[length:var(--text-step-0)] text-ink-soft">
               Counts order totals paid in cash, not the change given back. Card and QR Ph payments never reach the drawer.
             </p>
           </>
@@ -73,8 +73,8 @@ export function ShiftSummaryPanel({ cashier, onClose }: { cashier: string; onClo
         <div className="flex flex-wrap items-center justify-between gap-3">
           {confirmNew ? (
             <div className="flex items-center gap-3">
-              <span className="text-lg font-bold">Start counting from now?</span>
-              <Button variant="solid" onClick={startNewShift}>
+              <span className="text-[length:var(--text-step-0)] font-semibold">Start counting from now?</span>
+              <Button variant="primary" onClick={startNewShift}>
                 Yes, new shift
               </Button>
               <Button onClick={() => setConfirmNew(false)}>No</Button>
@@ -86,7 +86,7 @@ export function ShiftSummaryPanel({ cashier, onClose }: { cashier: string; onClo
             <Button disabled={summary.isFetching} onClick={() => void summary.refetch()}>
               {summary.isFetching ? "Refreshing…" : "Refresh"}
             </Button>
-            <Button variant="solid" disabled={!data} onClick={print}>
+            <Button variant="primary" disabled={!data} onClick={print}>
               Print
             </Button>
           </div>
@@ -99,10 +99,10 @@ export function ShiftSummaryPanel({ cashier, onClose }: { cashier: string; onClo
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <div className="border-4 border-black p-4">
-      <p className="text-base font-bold uppercase">{label}</p>
-      <p className="text-3xl font-black tabular-nums">{value}</p>
-      <p className="text-base">{note}</p>
+    <div className="border-3 border-line bg-paper p-4">
+      <p className="text-[length:var(--text-step-0)] font-semibold text-ink-soft">{label}</p>
+      <p className="display text-[length:var(--text-step-3)] leading-tight tabular-nums">{value}</p>
+      <p className="text-[length:var(--text-step-0)] text-ink-soft">{note}</p>
     </div>
   );
 }

@@ -1,8 +1,35 @@
 @import "tailwindcss";
 
-/* Black and white only for now; the real design comes later. */
+/*
+ * Hapag cashier POS — design tokens, shared with the kiosk.
+ *
+ * Same palette as the kiosk, aimed at a different job. A cashier handles money under time pressure,
+ * so the two numbers that cost real money when misread — change due and the total — are the largest
+ * things on screen, and amber marks the one thing to act on rather than decorating anything.
+ */
 @theme {
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-sans: Archivo, ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Archivo Black", Archivo, ui-sans-serif, system-ui, sans-serif;
+
+  --color-paper: #faf4e6;
+  --color-paper-deep: #f1e7d2;
+  --color-card: #ffffff;
+  --color-ink: #241612;
+  --color-ink-soft: #7a6a60;
+  --color-brand: #b32317;
+  --color-brand-deep: #7d150e;
+  --color-accent: #f5b700;
+  --color-accent-deep: #d89c00;
+  --color-line: #241612;
+
+  /* Fluid type: one scale that holds from a phone to a 1080×1920 portrait kiosk. */
+  --text-step-0: clamp(0.95rem, 0.8rem + 0.5vw, 1.15rem);
+  --text-step-1: clamp(1.1rem, 0.9rem + 0.7vw, 1.45rem);
+  --text-step-2: clamp(1.35rem, 1rem + 1.1vw, 1.9rem);
+  --text-step-3: clamp(1.7rem, 1.2rem + 1.7vw, 2.6rem);
+  --text-step-4: clamp(2.1rem, 1.4rem + 2.6vw, 3.6rem);
+  --text-step-5: clamp(2.8rem, 1.6rem + 4.2vw, 5.5rem);
+  --text-step-6: clamp(3.6rem, 1.8rem + 7vw, 9rem);
 }
 
 html,
@@ -12,9 +39,45 @@ body,
 }
 
 body {
-  background: #fff;
-  color: #000;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  /* A till: no long-press menus, no accidental zoom. Order details stay selectable for copying. */
   touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+/*
+ * Menu-board type. Weight 900 is carried on the class rather than left to the font file, so a kiosk
+ * that can't reach Google Fonts still gets a heavy face from the system stack instead of a limp one.
+ */
+.display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+/* The one shape motif: a clipped corner, like a torn ticket stub. */
+.notch {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.25rem), calc(100% - 1.25rem) 100%, 0 100%);
+}
+.notch-sm {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.75rem), calc(100% - 0.75rem) 100%, 0 100%);
+}
+
+/* Touch feedback without transitions that linger on a slow panel. */
+.press:active {
+  transform: translateY(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 #print-root {
@@ -26,6 +89,9 @@ body {
   @page {
     size: 80mm auto;
     margin: 0;
+  }
+  body {
+    background: #fff;
   }
   #root {
     display: none !important;

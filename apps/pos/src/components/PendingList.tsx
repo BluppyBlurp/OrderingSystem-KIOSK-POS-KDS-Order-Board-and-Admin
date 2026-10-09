@@ -2,6 +2,17 @@ import { useEffect, useState } from "react";
 import type { Order } from "../api";
 import { money, whereLabel } from "./ui";
 
+/** An order close to expiring is money about to walk out, so the countdown warms up as it runs down. */
+const WARN_MS = 5 * 60_000;
+const URGENT_MS = 2 * 60_000;
+
+function countdownStyle(left: number, selected: boolean) {
+  if (selected) return "text-paper";
+  if (left <= URGENT_MS) return "text-brand";
+  if (left <= WARN_MS) return "text-accent-deep";
+  return "text-ink-soft";
+}
+
 /** Orders waiting for cash, oldest first, with how long until each one expires. */
 export function PendingList({
   orders,
@@ -18,11 +29,16 @@ export function PendingList({
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <h2 className="sticky top-0 border-b-4 border-black bg-white px-4 py-2 text-sm font-bold uppercase">
-        Waiting for cash ({orders.length})
+      <h2 className="sticky top-0 z-10 flex items-baseline gap-2 border-b-3 border-line bg-card px-4 py-2">
+        <span className="display text-[length:var(--text-step-1)]">Waiting for cash</span>
+        <span className="text-[length:var(--text-step-0)] tabular-nums text-ink-soft">{orders.length}</span>
       </h2>
-      {loading && <p className="p-4">Loading…</p>}
-      {!loading && orders.length === 0 && <p className="p-4">No orders waiting.</p>}
+
+      {loading && <p className="p-4 text-[length:var(--text-step-0)] text-ink-soft">Loading…</p>}
+      {!loading && orders.length === 0 && (
+        <p className="p-4 text-[length:var(--text-step-0)] text-ink-soft">Nobody waiting to pay.</p>
+      )}
+
       <ul>
         {orders.map((order) => {
           const left = Math.max(0, new Date(order.expiresAt).getTime() - now);
@@ -32,15 +48,21 @@ export function PendingList({
               <button
                 type="button"
                 onClick={() => onSelect(order)}
-                className={`flex w-full items-center justify-between border-b-2 border-black px-4 py-3 text-left ${selected ? "bg-black text-white" : "bg-white"}`}
+                className={`press flex w-full items-center justify-between gap-3 border-b-2 border-paper-deep px-4 py-3 text-left ${
+                  selected ? "bg-ink text-paper" : "bg-card"
+                }`}
               >
-                <span>
-                  <span className="block text-3xl font-black">{order.orderNumber}</span>
-                  <span className="text-sm">{whereLabel(order)}</span>
+                <span className="min-w-0">
+                  <span className="display block text-[length:var(--text-step-2)] leading-tight">{order.orderNumber}</span>
+                  <span className={`text-[length:var(--text-step-0)] ${selected ? "text-paper/75" : "text-ink-soft"}`}>
+                    {whereLabel(order)}
+                  </span>
                 </span>
-                <span className="text-right">
-                  <span className="block text-xl font-bold">{money(order.total)}</span>
-                  <span className="text-sm tabular-nums">{left > 0 ? `expires in ${formatLeft(left)}` : "expiring…"}</span>
+                <span className="shrink-0 text-right">
+                  <span className="display block text-[length:var(--text-step-1)]">{money(order.total)}</span>
+                  <span className={`text-[length:var(--text-step-0)] tabular-nums ${countdownStyle(left, selected)}`}>
+                    {left > 0 ? `${formatLeft(left)} left` : "expiring"}
+                  </span>
                 </span>
               </button>
             </li>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { cancelOrder, confirmCash, type CashConfirmation, type Order } from "../api";
 import { parseAmount, pressKey, quickAmounts } from "../lib/cash";
 import { CashReceipt, usePrintOnce } from "./Receipt";
-import { Button, Modal, money, time, whereLabel } from "./ui";
+import { Alert, Button, Modal, money, time, whereLabel } from "./ui";
 
 const statusText: Record<string, string> = {
   Created: "The customer hasn't chosen how to pay yet.",
@@ -39,6 +39,7 @@ export function OrderPanel({
 
   const tendered = parseAmount(typed);
   const canPay = current.status === "AwaitingPayment";
+  const short = typed !== "" && tendered < current.total;
 
   const pay = async () => {
     setBusy(true);
@@ -55,80 +56,98 @@ export function OrderPanel({
   };
 
   return (
-    <div className="flex gap-6 p-6">
+    <div className="flex flex-col gap-5 p-4 sm:p-6 xl:flex-row">
       <section className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-4">
-          <p className="text-7xl font-black">{current.orderNumber}</p>
-          <p className="text-xl font-bold uppercase">{whereLabel(current)}</p>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="display text-[length:var(--text-step-5)] leading-none">{current.orderNumber}</p>
+          <p className="text-[length:var(--text-step-1)] font-semibold">{whereLabel(current)}</p>
         </div>
-        <p className="mt-1 text-lg">
+        <p className="mt-2 text-[length:var(--text-step-0)] text-ink-soft">
           Ordered {time(current.createdAt)}
           {canPay && ` · pay before ${time(current.expiresAt)}`}
         </p>
 
-        <ul className="mt-6 divide-y-2 divide-black border-y-4 border-black">
+        <ul className="mt-5 divide-y-2 divide-paper-deep border-y-3 border-line bg-card">
           {current.items.map((item, i) => (
-            <li key={i} className="flex justify-between gap-4 py-3">
-              <div>
-                <p className="text-xl font-bold">
-                  {item.quantity} × {item.name}
+            <li key={i} className="flex justify-between gap-4 px-4 py-3">
+              <div className="min-w-0">
+                <p className="flex gap-2 text-[length:var(--text-step-1)] font-semibold">
+                  <span className="display shrink-0 bg-ink px-1.5 text-paper tabular-nums">{item.quantity}</span>
+                  {item.name}
                 </p>
                 {item.modifiers.map((m, j) => (
-                  <p key={j} className="pl-4">
-                    – {m.name} {m.priceDelta ? `(${money(m.priceDelta)})` : ""}
+                  <p key={j} className="pl-8 text-[length:var(--text-step-0)] text-ink-soft">
+                    {m.name} {m.priceDelta ? `(${money(m.priceDelta)})` : ""}
                   </p>
                 ))}
               </div>
-              <p className="text-xl font-bold">{money(item.lineTotal)}</p>
+              <p className="display shrink-0 text-[length:var(--text-step-1)]">{money(item.lineTotal)}</p>
             </li>
           ))}
         </ul>
-        <div className="mt-4 flex justify-between text-3xl font-black">
-          <span>Total</span>
-          <span>{money(current.total)}</span>
-        </div>
-        <p className="text-right">VAT included: {money(current.taxAmount)}</p>
 
-        {!canPay && <p className="mt-6 border-4 border-black p-4 text-xl font-bold">{statusText[current.status] ?? current.status}</p>}
+        <div className="mt-4 flex items-baseline justify-between gap-4">
+          <span className="display text-[length:var(--text-step-2)]">Total</span>
+          <span className="display text-[length:var(--text-step-4)] leading-none">{money(current.total)}</span>
+        </div>
+        <p className="text-right text-[length:var(--text-step-0)] text-ink-soft">
+          VAT included: {money(current.taxAmount)}
+        </p>
+
+        {!canPay && (
+          <p className="mt-5 border-3 border-line bg-card p-4 text-[length:var(--text-step-1)]">
+            {statusText[current.status] ?? current.status}
+          </p>
+        )}
         {canPay && (
-          <Button className="mt-6" onClick={() => setCancelling(true)}>
-            Cancel order
+          <Button variant="danger" className="mt-5" onClick={() => setCancelling(true)}>
+            Void this order
           </Button>
         )}
       </section>
 
       {canPay && (
-        <section className="w-96 shrink-0">
-          <p className="text-sm font-bold uppercase">Cash received</p>
-          <p className="mb-3 min-h-20 border-4 border-black px-3 text-right text-6xl font-black tabular-nums">
-            {typed ? money(tendered) : ""}
+        <section className="w-full shrink-0 xl:w-96">
+          <p className="mb-1 text-[length:var(--text-step-0)] font-semibold text-ink-soft">Cash received</p>
+          <p
+            className={`display mb-3 min-h-16 border-3 bg-card px-3 text-right text-[length:var(--text-step-4)] leading-[1.4] tabular-nums ${
+              short ? "border-brand" : "border-line"
+            }`}
+          >
+            {typed ? money(tendered) : <span className="text-ink-soft/40">—</span>}
           </p>
+
           <div className="mb-3 grid grid-cols-2 gap-2">
             {quickAmounts(current.total).map((amount, i) => (
               <Button key={amount} onClick={() => setTyped(String(amount))}>
-                {i === 0 ? `Exact ${money(amount)}` : money(amount)}
+                {i === 0 ? `Exact · ${money(amount)}` : money(amount)}
               </Button>
             ))}
           </div>
+
           <div className="grid grid-cols-3 gap-2">
             {["7", "8", "9", "4", "5", "6", "1", "2", "3", "00", "0", "."].map((key) => (
-              <Button key={key} size="lg" onClick={() => setTyped((t) => pressKey(t, key))}>
+              <Button key={key} size="lg" className="display" onClick={() => setTyped((t) => pressKey(t, key))}>
                 {key}
               </Button>
             ))}
             <Button size="lg" onClick={() => setTyped((t) => pressKey(t, "C"))}>
-              C
+              Clear
             </Button>
-            <Button size="lg" className="col-span-2" onClick={() => setTyped((t) => pressKey(t, "⌫"))}>
+            <Button size="lg" className="col-span-2" onClick={() => setTyped((t) => pressKey(t, "⌫"))} aria-label="Delete last digit">
               ⌫
             </Button>
           </div>
-          {typed && tendered < current.total && (
-            <p className="mt-3 font-bold">Short by {money(current.total - tendered)}</p>
+
+          {short && (
+            <p className="mt-3 text-[length:var(--text-step-1)] font-semibold text-brand">
+              Short by {money(current.total - tendered)}
+            </p>
           )}
-          {error && <p className="mt-3 border-4 border-black p-3 font-bold">{error}</p>}
-          <Button variant="solid" size="lg" className="mt-3 w-full" disabled={busy || tendered < current.total} onClick={pay}>
-            {busy ? "Confirming…" : "Confirm cash"}
+          {error && <div className="mt-3">{<Alert>{error}</Alert>}</div>}
+
+          <Button variant="primary" size="lg" className="mt-3 w-full" disabled={busy || tendered < current.total} onClick={pay}>
+            {busy ? "Confirming…" : "Take cash"}
           </Button>
         </section>
       )}
@@ -148,22 +167,31 @@ export function OrderPanel({
   );
 }
 
+/**
+ * The one screen where a mistake hands over real money, so change due is the largest thing on it and
+ * sits in the amber the rest of the system uses for "this is the thing to act on".
+ */
 function ChangeView({ result, cashier, onNext }: { result: CashConfirmation; cashier: string; onNext: () => void }) {
   usePrintOnce(`${result.order.id}:receipt`);
   return (
-    <div className="flex flex-col items-center gap-6 p-10 text-center">
-      <p className="text-3xl font-bold uppercase">Paid · {result.order.orderNumber}</p>
-      <p className="text-2xl">Give change</p>
-      <p className="border-8 border-black px-10 py-4 text-9xl font-black tabular-nums">{money(result.changeDue)}</p>
-      <p className="text-2xl">
-        Received {money(result.amountTendered)} · Total {money(result.order.total)}
+    <div className="flex flex-col items-center gap-5 p-6 text-center sm:p-10">
+      <p className="display text-[length:var(--text-step-2)]">Paid · {result.order.orderNumber}</p>
+
+      <div className="w-full max-w-2xl border-3 border-line bg-accent px-6 py-5">
+        <p className="text-[length:var(--text-step-1)] font-semibold">Give change</p>
+        <p className="display text-[length:var(--text-step-6)] leading-none tabular-nums">{money(result.changeDue)}</p>
+      </div>
+
+      <p className="text-[length:var(--text-step-1)] text-ink-soft">
+        Received {money(result.amountTendered)} · total {money(result.order.total)}
       </p>
-      <p className="text-xl">The order is now in the kitchen queue.</p>
-      <div className="flex gap-4">
+      <p className="text-[length:var(--text-step-0)] text-ink-soft">The order is now in the kitchen queue.</p>
+
+      <div className="flex flex-wrap justify-center gap-3">
         <Button size="lg" onClick={() => window.print()}>
           Reprint receipt
         </Button>
-        <Button variant="solid" size="lg" onClick={onNext}>
+        <Button variant="primary" size="lg" className="notch-sm" onClick={onNext}>
           Next customer
         </Button>
       </div>
@@ -200,17 +228,19 @@ function CancelDialog({
   return (
     <Modal>
       <div data-modal>
-        <p className="text-2xl font-black">Cancel {order.orderNumber}?</p>
-        <p className="mb-4">The items go back into stock. Pick a reason:</p>
+        <p className="display text-[length:var(--text-step-2)]">Void {order.orderNumber}?</p>
+        <p className="mt-2 mb-4 text-[length:var(--text-step-0)] text-ink-soft">
+          The items go back into stock. Pick a reason:
+        </p>
         <div className="grid gap-2">
           {REASONS.map((reason) => (
-            <Button key={reason} disabled={busy} onClick={() => cancel(reason)}>
+            <Button key={reason} variant="danger" disabled={busy} onClick={() => cancel(reason)}>
               {reason}
             </Button>
           ))}
         </div>
-        {error && <p className="mt-3 font-bold">{error}</p>}
-        <Button variant="solid" className="mt-4 w-full" disabled={busy} onClick={onClose}>
+        {error && <div className="mt-3">{<Alert>{error}</Alert>}</div>}
+        <Button variant="primary" size="lg" className="mt-4 w-full" disabled={busy} onClick={onClose}>
           Keep the order
         </Button>
       </div>

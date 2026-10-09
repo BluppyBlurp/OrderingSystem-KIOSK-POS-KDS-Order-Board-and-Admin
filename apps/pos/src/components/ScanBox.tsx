@@ -1,6 +1,7 @@
 import { ApiError } from "@kiosk/api-client";
 import { useEffect, useRef, useState } from "react";
 import { lookupOrder, type Order } from "../api";
+import { Alert } from "./ui";
 
 /**
  * USB/Bluetooth QR scanners behave like keyboards: they type the slip token and press Enter.
@@ -46,14 +47,14 @@ export function ScanBox({ onFound, focusKey }: { onFound: (order: Order) => void
 
   return (
     <form
-      className="border-b-4 border-black p-4"
+      className="border-b-3 border-line bg-card p-4"
       onSubmit={(e) => {
         e.preventDefault();
         void submit();
       }}
     >
-      <label htmlFor="scan" className="mb-2 block text-sm font-bold uppercase">
-        Scan slip or type order number
+      <label htmlFor="scan" className="mb-2 block text-[length:var(--text-step-0)] font-semibold text-ink-soft">
+        Scan the slip, or type the order number
       </label>
       <input
         id="scan"
@@ -62,10 +63,10 @@ export function ScanBox({ onFound, focusKey }: { onFound: (order: Order) => void
         onChange={(e) => setCode(e.target.value)}
         disabled={busy}
         autoComplete="off"
-        placeholder="e.g. 101"
-        className="min-h-14 w-full border-4 border-black px-3 text-2xl font-bold"
+        placeholder="101"
+        className="display min-h-14 w-full border-3 border-line bg-paper px-3 text-[length:var(--text-step-3)] tabular-nums outline-none focus:border-accent-deep focus:bg-accent/15"
       />
-      {error && <p className="mt-2 font-bold">{error}</p>}
+      {error && <div className="mt-2">{error && <Alert>{error}</Alert>}</div>}
     </form>
   );
 }
