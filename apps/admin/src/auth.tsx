@@ -74,7 +74,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (!config.clerkKey) {
     return (
       <SignInLayout>
-        {devButtons ?? <p className="text-xl">Sign-in isn't configured: set VITE_CLERK_PUBLISHABLE_KEY.</p>}
+        {devButtons ?? <p className="text-[length:var(--text-step-1)]">Sign-in isn't configured: set VITE_CLERK_PUBLISHABLE_KEY.</p>}
       </SignInLayout>
     );
   }
@@ -127,7 +127,7 @@ function ClerkGate({ children, devButtons }: { children: ReactNode; devButtons: 
 function SignInLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-8 p-8">
-      <h1 className="text-5xl font-black uppercase">{APP_TITLE}</h1>
+      <h1 className="display text-[length:var(--text-step-4)]">{APP_TITLE}</h1>
       {children}
     </div>
   );
@@ -135,8 +135,8 @@ function SignInLayout({ children }: { children: ReactNode }) {
 
 function DevSignIn({ onPick }: { onPick: (role: string) => void }) {
   return (
-    <div className="flex flex-col items-center gap-3 border-4 border-dashed border-black p-6">
-      <p className="font-bold uppercase">Dev sign-in (development only)</p>
+    <div className="flex flex-col items-center gap-3 border-2 border-dashed border-ink-soft p-5">
+      <p className="text-[length:var(--text-step-00)] text-ink-soft">Development sign-in — not available in production</p>
       <div className="flex gap-3">
         {ALLOWED_ROLES.map((role) => (
           <Button key={role} onClick={() => onPick(role)}>

@@ -56,8 +56,8 @@ export function MenuPage({ canEdit }: { canEdit: boolean }) {
         <ErrorBox message={error} onDismiss={() => setError(null)} />
       </div>
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-96 shrink-0 flex-col gap-3 overflow-y-auto border-r-4 border-black p-4">
-          <h2 className="text-xl font-black uppercase">Categories</h2>
+        <aside className="flex w-96 shrink-0 flex-col gap-3 overflow-y-auto border-r-2 border-line p-4">
+          <h2 className="display text-[length:var(--text-step-1)]">Categories</h2>
           {categories.isLoading && <p>Loading…</p>}
           {list.map((c, i) => (
             <CategoryRow
@@ -87,7 +87,7 @@ export function MenuPage({ canEdit }: { canEdit: boolean }) {
             }}
           >
             <TextInput placeholder="New category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} />
-            <Button type="submit" variant="solid">
+            <Button type="submit" variant="primary">
               Add
             </Button>
           </form>
@@ -98,16 +98,16 @@ export function MenuPage({ canEdit }: { canEdit: boolean }) {
           {selected ? (
             <>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-2xl font-black uppercase">{selected.name}</h2>
+                <h2 className="display text-[length:var(--text-step-2)]">{selected.name}</h2>
                 {canEdit && (
-                  <Button variant="solid" onClick={() => setEditing("new")}>
+                  <Button variant="primary" onClick={() => setEditing("new")}>
                     New product
                   </Button>
                 )}
               </div>
-              <table className="w-full border-collapse text-left text-lg">
+              <table className="w-full border-collapse text-left text-[length:var(--text-step-0)]">
                 <thead>
-                  <tr className="border-b-4 border-black">
+                  <tr className="border-b-2 border-line">
                     {canEdit && <th className="p-2">Order</th>}
                     <th className="p-2">Name</th>
                     <th className="p-2">Price</th>
@@ -118,7 +118,7 @@ export function MenuPage({ canEdit }: { canEdit: boolean }) {
                 </thead>
                 <tbody>
                   {inCategory.map((p, i) => (
-                    <tr key={p.id} className="border-b-2 border-black">
+                    <tr key={p.id} className="border-b border-paper-deep">
                       {canEdit && (
                       <td className="p-2 whitespace-nowrap">
                         <Button disabled={i === 0} aria-label="Move up" onClick={() => run(() => reorderProducts(move(inCategory, i, -1).map((x) => x.id)))}>
@@ -148,7 +148,7 @@ export function MenuPage({ canEdit }: { canEdit: boolean }) {
                         {canEdit && (
                           <>
                             <Button onClick={() => setEditing(p)}>Edit</Button>{" "}
-                            <Button onClick={() => confirm(`Delete "${p.name}"?`) && run(() => deleteProduct(p.id))}>Delete</Button>
+                            <Button variant="danger" onClick={() => confirm(`Delete "${p.name}"?`) && run(() => deleteProduct(p.id))}>Delete</Button>
                           </>
                         )}
                       </td>
@@ -159,7 +159,7 @@ export function MenuPage({ canEdit }: { canEdit: boolean }) {
               {inCategory.length === 0 && !products.isLoading && <p className="p-4 text-lg">No products in this category yet.</p>}
             </>
           ) : (
-            !categories.isLoading && <p className="text-xl">{canEdit ? "Add a category to start building the menu." : "The menu is empty."}</p>
+            !categories.isLoading && <p className="text-[length:var(--text-step-1)]">{canEdit ? "Add a category to start building the menu." : "The menu is empty."}</p>
           )}
         </section>
       </div>
@@ -207,7 +207,7 @@ function CategoryRow({
   const [name, setName] = useState(category.name);
 
   return (
-    <div className={`flex flex-col gap-2 border-4 border-black p-2 ${selected ? "bg-black text-white" : ""}`}>
+    <div className={`flex flex-col gap-2 border-2 p-2 ${selected ? "border-line bg-accent" : "border-line bg-card"}`}>
       {renaming ? (
         <form
           className="flex gap-2"
@@ -217,16 +217,16 @@ function CategoryRow({
             setRenaming(false);
           }}
         >
-          <input className="w-full border-4 border-black px-2 text-lg text-black" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <input className="w-full border-2 border-line bg-card px-2 text-[length:var(--text-step-0)] outline-none focus:border-accent-deep" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           <Button type="submit">Save</Button>
         </form>
       ) : (
-        <button type="button" className="min-h-12 text-left text-xl font-bold" onClick={onSelect}>
-          {category.name} <span className="text-sm font-normal">({category.productCount}{category.isActive ? "" : ", hidden"})</span>
+        <button type="button" className="min-h-10 text-left display text-[length:var(--text-step-1)]" onClick={onSelect}>
+          {category.name} <span className="text-[length:var(--text-step-00)] font-normal text-ink-soft">({category.productCount}{category.isActive ? "" : ", hidden"})</span>
         </button>
       )}
       {selected && canEdit && (
-        <div className="flex flex-wrap gap-2 text-black">
+        <div className="flex flex-wrap gap-2">
           <Button disabled={first} onClick={() => onMove(-1)} aria-label="Move up">
             ↑
           </Button>
@@ -235,7 +235,7 @@ function CategoryRow({
           </Button>
           <Button onClick={() => setRenaming(!renaming)}>Rename</Button>
           <Button onClick={() => onSave(category.name, !category.isActive)}>{category.isActive ? "Hide" : "Show"}</Button>
-          <Button onClick={onDelete}>Delete</Button>
+          <Button variant="danger" onClick={onDelete}>Delete</Button>
         </div>
       )}
     </div>
@@ -273,8 +273,8 @@ function StockCell({ stock, onSave }: { stock: number | null; onSave: (value: nu
         setEditing(false);
       }}
     >
-      <input className="w-24 border-4 border-black px-2 py-1 text-lg" inputMode="numeric" value={text} onChange={(e) => setText(e.target.value)} autoFocus aria-label="Stock" placeholder="none" />
-      <Button type="submit" variant="solid">
+      <input className="w-24 border-2 border-line bg-card px-2 py-1 text-[length:var(--text-step-0)] outline-none focus:border-accent-deep" inputMode="numeric" value={text} onChange={(e) => setText(e.target.value)} autoFocus aria-label="Stock" placeholder="none" />
+      <Button type="submit" variant="primary">
         Save
       </Button>
       <Button onClick={() => setEditing(false)}>Cancel</Button>

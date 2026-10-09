@@ -1,8 +1,35 @@
 @import "tailwindcss";
 
-/* Black and white only for now; the real design comes later. */
+/*
+ * Hapag admin — design tokens, shared with the kiosk.
+ *
+ * Same palette as the kiosk, dialled down. This is a back office worked at a desk with a mouse, not
+ * a panel jabbed at with a thumb, so the type scale is tighter, controls are smaller, and the brand
+ * stays at the edges — a red strip and an amber active tab — leaving the data to carry the screen.
+ */
 @theme {
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-sans: Archivo, ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Archivo Black", Archivo, ui-sans-serif, system-ui, sans-serif;
+
+  --color-paper: #faf4e6;
+  --color-paper-deep: #f1e7d2;
+  --color-card: #ffffff;
+  --color-ink: #241612;
+  --color-ink-soft: #7a6a60;
+  --color-brand: #b32317;
+  --color-brand-deep: #7d150e;
+  --color-accent: #f5b700;
+  --color-accent-deep: #d89c00;
+  --color-line: #241612;
+
+  /* A desk-sized scale: denser than the kiosk's, since nothing here is read at arm's length. */
+  --text-step-00: 0.8rem;
+  --text-step-0: 0.9rem;
+  --text-step-1: 1.05rem;
+  --text-step-2: 1.3rem;
+  --text-step-3: 1.6rem;
+  --text-step-4: 2.1rem;
+  --text-step-5: 2.8rem;
 }
 
 html,
@@ -12,25 +39,41 @@ body,
 }
 
 body {
-  background: #fff;
-  color: #000;
-  touch-action: manipulation;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  /* A back office: text stays selectable, because people copy order numbers and device tokens out. */
 }
 
-#print-root {
-  display: none;
+/*
+ * Menu-board type. Weight 900 is carried on the class rather than left to the font file, so a kiosk
+ * that can't reach Google Fonts still gets a heavy face from the system stack instead of a limp one.
+ */
+.display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
-/* Only the receipt prints, sized for an 80 mm thermal roll. */
-@media print {
-  @page {
-    size: 80mm auto;
-    margin: 0;
-  }
-  #root {
-    display: none !important;
-  }
-  #print-root {
-    display: block !important;
+/* The one shape motif: a clipped corner, like a torn ticket stub. */
+.notch {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.25rem), calc(100% - 1.25rem) 100%, 0 100%);
+}
+.notch-sm {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.75rem), calc(100% - 0.75rem) 100%, 0 100%);
+}
+
+/* Touch feedback without transitions that linger on a slow panel. */
+.press:active {
+  transform: translateY(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -100,13 +100,13 @@ export function ProductEditor({
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-white/70" role="dialog" aria-label={product ? `Edit ${product.name}` : "New product"}>
-      <div className="flex h-full w-full max-w-3xl flex-col gap-4 overflow-y-auto border-l-8 border-black bg-white p-6">
+      <div className="flex h-full w-full max-w-3xl flex-col gap-4 overflow-y-auto border-l-2 border-line bg-paper p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-black uppercase">{product ? `Edit ${product.name}` : "New product"}</h2>
+          <h2 className="display text-[length:var(--text-step-3)]">{product ? `Edit ${product.name}` : "New product"}</h2>
           <Button onClick={onClose}>Close</Button>
         </div>
         <ErrorBox message={error} onDismiss={() => setError(null)} />
-        {notice && <p className="border-4 border-black p-2 font-bold">{notice}</p>}
+        {notice && <p className="border-2 border-accent-deep bg-accent/20 p-2 text-[length:var(--text-step-0)] font-semibold">{notice}</p>}
 
         <Field label="Category">
           <select className={inputClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
@@ -128,8 +128,8 @@ export function ProductEditor({
         </Field>
         <Check label="Available on the kiosk" checked={isAvailable} onChange={setIsAvailable} />
 
-        <fieldset className="border-4 border-black p-3">
-          <legend className="px-2 font-bold uppercase">Stock</legend>
+        <fieldset className="border-2 border-line bg-card p-3">
+          <legend className="px-2 text-[length:var(--text-step-00)] font-semibold text-ink-soft">Stock</legend>
           <Check label="Track stock (sells out at 0)" checked={trackStock} onChange={setTrackStock} />
           {trackStock && (
             <Field label="Units in stock">
@@ -144,8 +144,8 @@ export function ProductEditor({
           {product && <p className="mt-1 text-sm">Stock changes save on their own, with "Set stock".</p>}
         </fieldset>
 
-        <fieldset className="border-4 border-black p-3">
-          <legend className="px-2 font-bold uppercase">Questions (option groups), in the order the kiosk asks them</legend>
+        <fieldset className="border-2 border-line bg-card p-3">
+          <legend className="px-2 text-[length:var(--text-step-00)] font-semibold text-ink-soft">Questions (option groups), in the order the kiosk asks them</legend>
           {groupIds.map((id, i) => {
             const group = allGroups.find((g) => g.id === id);
             return (
@@ -180,7 +180,7 @@ export function ProductEditor({
           </select>
         </fieldset>
 
-        <Button variant="solid" size="lg" disabled={busy || !name.trim()} onClick={save}>
+        <Button variant="primary" size="lg" disabled={busy || !name.trim()} onClick={save}>
           {busy ? "Saving…" : product ? "Save changes" : "Create product"}
         </Button>
 
@@ -212,17 +212,17 @@ function MediaSection({
     }, "Uploaded.");
 
   return (
-    <fieldset className="border-4 border-black p-3">
-      <legend className="px-2 font-bold uppercase">Photos and videos</legend>
+    <fieldset className="border-2 border-line bg-card p-3">
+      <legend className="px-2 text-[length:var(--text-step-00)] font-semibold text-ink-soft">Photos and videos</legend>
       <div className="flex flex-wrap gap-3">
         {product.media.map((m) => (
-          <div key={m.id} className="flex w-44 flex-col gap-2 border-4 border-black p-2">
+          <div key={m.id} className="flex w-44 flex-col gap-2 border-2 border-line bg-card p-2">
             {m.type === "Image" ? (
               <img src={m.thumbnailUrl ?? m.url} alt="" className="h-28 w-full object-contain" />
             ) : (
               <video src={m.url} muted className="h-28 w-full object-contain" />
             )}
-            <a href={m.url} target="_blank" rel="noreferrer" className="truncate text-sm underline">
+            <a href={m.url} target="_blank" rel="noreferrer" className="truncate text-[length:var(--text-step-00)] underline">
               {m.type}
             </a>
             <Button disabled={busy} onClick={() => run(() => deleteMedia(product.id, m.id), "Removed.")}>

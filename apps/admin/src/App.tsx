@@ -2,8 +2,9 @@ import { ApiError } from "@kiosk/api-client";
 import { useState } from "react";
 import { setTokenSource, useCategories } from "./api";
 import { useSession } from "./auth";
+import { BRAND } from "./brand";
 import { PendingApproval } from "./components/PendingApproval";
-import { Button } from "./components/ui";
+import { Button, Mark } from "./components/ui";
 import { ALLOWED_ROLES, MANAGER_ROLES, ROLE_LABELS } from "./config";
 import { DevicesPage } from "./pages/DevicesPage";
 import { MenuPage } from "./pages/MenuPage";
@@ -60,25 +61,38 @@ function AdminScreen() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex min-h-16 items-center justify-between gap-4 border-b-4 border-black px-4">
-        <div className="flex items-center gap-6">
-          <h1 className="text-2xl font-black uppercase">Admin</h1>
-          <nav className="flex gap-2">
-            {tabs.map((t) => (
-              <Button key={t.id} variant={tab === t.id ? "solid" : "outline"} onClick={() => setTab(t.id)}>
-                {t.label}
-              </Button>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="font-bold">
+    <div className="flex h-full flex-col bg-paper">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-brand px-4 py-2 text-paper">
+        <Mark className="h-5 w-5 shrink-0" />
+        <span className="display text-[length:var(--text-step-1)]">{BRAND.name} admin</span>
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-[length:var(--text-step-00)] text-paper/85">
             {session.name} · {ROLE_LABELS[session.role ?? ""] ?? session.role}
           </span>
           <Button onClick={session.signOut}>Sign out</Button>
         </div>
       </header>
+
+      {/* Tabs read as a row of folder tabs: the active one is amber and joined to the page below it. */}
+      <nav className="flex gap-1 overflow-x-auto border-b-2 border-line bg-card px-2 pt-2">
+        {tabs.map((t) => {
+          const on = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              aria-current={on ? "page" : undefined}
+              onClick={() => setTab(t.id)}
+              className={`-mb-0.5 shrink-0 border-2 border-b-0 px-4 py-2 text-[length:var(--text-step-0)] font-semibold whitespace-nowrap ${
+                on ? "border-line bg-accent text-ink" : "border-transparent text-ink-soft hover:bg-paper-deep"
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </nav>
+
       <main className="min-h-0 flex-1 overflow-y-auto">
         {tab === "menu" && <MenuPage canEdit={isManager} />}
         {tab === "modifiers" && isManager && <ModifiersPage />}
@@ -92,9 +106,9 @@ function AdminScreen() {
 
 function NoAccess({ message, onSignOut }: { message: string; onSignOut: () => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 p-10 text-center">
-      <p className="max-w-2xl text-2xl font-bold">{message}</p>
-      <Button variant="solid" size="lg" onClick={onSignOut}>
+    <div className="flex h-full flex-col items-center justify-center gap-5 bg-paper p-10 text-center">
+      <p className="max-w-2xl text-[length:var(--text-step-1)] font-semibold">{message}</p>
+      <Button variant="primary" size="lg" onClick={onSignOut}>
         Sign out
       </Button>
     </div>

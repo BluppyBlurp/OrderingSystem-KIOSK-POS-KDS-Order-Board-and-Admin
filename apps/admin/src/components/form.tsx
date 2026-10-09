@@ -1,12 +1,15 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 
-export const inputClass = "w-full border-4 border-black px-3 py-2 text-lg";
+/** Amber focus, not red: red is reserved for something being wrong. */
+export const inputClass =
+  "w-full border-2 border-line bg-card px-3 py-2 text-[length:var(--text-step-0)] outline-none focus:border-accent-deep focus:bg-accent/10";
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-sm font-bold uppercase">{label}</span>
+      <span className="text-[length:var(--text-step-00)] font-semibold text-ink-soft">{label}</span>
       {children}
+      {hint && <span className="text-[length:var(--text-step-00)] text-ink-soft">{hint}</span>}
     </label>
   );
 }
@@ -17,8 +20,13 @@ export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
 
 export function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex min-h-12 items-center gap-3 text-lg font-bold">
-      <input type="checkbox" className="size-6 accent-black" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label className="flex min-h-10 items-center gap-2.5 text-[length:var(--text-step-0)] font-semibold">
+      <input
+        type="checkbox"
+        className="size-5 accent-[var(--color-brand)]"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
       {label}
     </label>
   );
@@ -28,8 +36,12 @@ export function Check({ label, checked, onChange }: { label: string; checked: bo
 export function ErrorBox({ message, onDismiss }: { message: string | null; onDismiss: () => void }) {
   if (!message) return null;
   return (
-    <button type="button" onClick={onDismiss} className="w-full border-4 border-black bg-black p-3 text-left font-bold text-white">
-      {message} (tap to dismiss)
+    <button
+      type="button"
+      onClick={onDismiss}
+      className="w-full border-2 border-brand bg-card p-3 text-left text-[length:var(--text-step-0)] font-semibold text-brand"
+    >
+      {message} — click to dismiss
     </button>
   );
 }

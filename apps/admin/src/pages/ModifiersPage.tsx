@@ -47,19 +47,19 @@ export function ModifiersPage() {
         <ErrorBox message={error} onDismiss={() => setError(null)} />
       </div>
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-96 shrink-0 flex-col gap-2 overflow-y-auto border-r-4 border-black p-4">
-          <h2 className="text-xl font-black uppercase">Option groups</h2>
+        <aside className="flex w-96 shrink-0 flex-col gap-2 overflow-y-auto border-r-2 border-line p-4">
+          <h2 className="display text-[length:var(--text-step-1)]">Option groups</h2>
           {list.map((g) => (
             <Button
               key={g.id}
-              variant={g.id === selected?.id ? "solid" : "outline"}
+              variant={g.id === selected?.id ? "primary" : "plain"}
               className="text-left normal-case"
               onClick={() => setSelectedId(g.id)}
             >
               {g.name}
             </Button>
           ))}
-          <Button variant={selectedId === "new" ? "solid" : "outline"} onClick={() => setSelectedId("new")}>
+          <Button variant={selectedId === "new" ? "primary" : "plain"} onClick={() => setSelectedId("new")}>
             + New group
           </Button>
         </aside>
@@ -86,7 +86,7 @@ export function ModifiersPage() {
               <ModifierTable group={selected} run={run} />
             </>
           ) : (
-            !groups.isLoading && <p className="text-xl">No option groups yet.</p>
+            !groups.isLoading && <p className="text-[length:var(--text-step-1)]">No option groups yet.</p>
           )}
         </section>
       </div>
@@ -104,13 +104,13 @@ function GroupForm({ group, onSave, onDelete }: { group: ModifierGroup | null; o
 
   return (
     <form
-      className="mb-6 flex flex-col gap-3 border-4 border-black p-4"
+      className="mb-6 flex flex-col gap-3 border-2 border-line bg-card p-4"
       onSubmit={(e) => {
         e.preventDefault();
         onSave({ name: name.trim(), minSelect: parseNumber(min) ?? 0, maxSelect: parseNumber(max) ?? 1, isRequired });
       }}
     >
-      <h2 className="text-2xl font-black uppercase">{group ? "Question" : "New question"}</h2>
+      <h2 className="display text-[length:var(--text-step-2)]">{group ? "Question" : "New question"}</h2>
       <Field label="Question shown on the kiosk">
         <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Choose your drink" />
       </Field>
@@ -124,7 +124,7 @@ function GroupForm({ group, onSave, onDelete }: { group: ModifierGroup | null; o
         <Check label="Required" checked={isRequired} onChange={setIsRequired} />
       </div>
       <div className="flex gap-3">
-        <Button type="submit" variant="solid" disabled={!name.trim()}>
+        <Button type="submit" variant="primary" disabled={!name.trim()}>
           {group ? "Save question" : "Create question"}
         </Button>
         {onDelete && (
@@ -139,11 +139,11 @@ function GroupForm({ group, onSave, onDelete }: { group: ModifierGroup | null; o
 
 function ModifierTable({ group, run }: { group: ModifierGroup; run: (action: () => Promise<unknown>) => Promise<void> }) {
   return (
-    <div className="border-4 border-black p-4">
-      <h3 className="mb-2 text-xl font-black uppercase">Options</h3>
-      <table className="w-full text-left text-lg">
+    <div className="border-2 border-line bg-card p-4">
+      <h3 className="mb-2 display text-[length:var(--text-step-1)]">Options</h3>
+      <table className="w-full text-left text-[length:var(--text-step-0)]">
         <thead>
-          <tr className="border-b-4 border-black">
+          <tr className="border-b-2 border-line">
             <th className="p-2">Name</th>
             <th className="p-2">Price change (₱)</th>
             <th className="p-2">Order</th>
@@ -192,7 +192,7 @@ function ModifierRow({
   const body = () => ({ name: name.trim(), priceDelta: parseNumber(delta) ?? 0, sortOrder: parseNumber(sort) ?? 0, isAvailable });
 
   return (
-    <tr className="border-b-2 border-black">
+    <tr className="border-b border-paper-deep">
       <td className="p-2">
         <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder={modifier ? "" : "New option, e.g. Large fries"} aria-label="Option name" />
       </td>
@@ -208,7 +208,7 @@ function ModifierRow({
       <td className="p-2 text-right whitespace-nowrap">
         {modifier && <span className="mr-2 text-sm">{money(modifier.priceDelta)}</span>}
         <Button
-          variant="solid"
+          variant="primary"
           disabled={!name.trim()}
           onClick={() => {
             onSave(body());
@@ -217,7 +217,7 @@ function ModifierRow({
         >
           {modifier ? "Save" : "Add"}
         </Button>{" "}
-        {onDelete && <Button onClick={onDelete}>Delete</Button>}
+        {onDelete && <Button variant="danger" onClick={onDelete}>Delete</Button>}
       </td>
     </tr>
   );

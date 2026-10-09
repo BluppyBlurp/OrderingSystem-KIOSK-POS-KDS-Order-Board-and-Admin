@@ -63,7 +63,7 @@ export function StaffPage() {
   return (
     <div className="flex max-w-6xl flex-col gap-8 p-4">
       <ErrorBox message={error} onDismiss={() => setError(null)} />
-      {notice && <p className="border-4 border-black p-3 text-lg font-bold">{notice}</p>}
+      {notice && <p className="border-2 border-accent-deep bg-accent/20 p-3 text-[length:var(--text-step-0)] font-semibold">{notice}</p>}
       {staff.isLoading && <p>Loading…</p>}
       {staff.isError && !(staff.error instanceof ApiError && staff.error.status === 503) && (
         <p className="font-bold">{errorText(staff.error)}</p>
@@ -72,7 +72,7 @@ export function StaffPage() {
       {data && (
         <>
           <section>
-            <h2 className="mb-2 text-2xl font-black uppercase">Waiting for approval ({data.pendingApproval.length})</h2>
+            <h2 className="mb-2 display text-[length:var(--text-step-2)]">Waiting for approval ({data.pendingApproval.length})</h2>
             <p className="mb-3">People who signed up themselves. Approve them with a role, or reject the sign-up (deletes it).</p>
             {data.pendingApproval.length === 0 && <p className="p-2">Nobody is waiting.</p>}
             <div className="flex flex-col gap-3">
@@ -95,16 +95,16 @@ export function StaffPage() {
 
           {data.invitations.length > 0 && (
             <section>
-              <h2 className="mb-2 text-2xl font-black uppercase">Invitations not accepted yet</h2>
-              <table className="w-full text-left text-lg">
+              <h2 className="mb-2 display text-[length:var(--text-step-2)]">Invitations not accepted yet</h2>
+              <table className="w-full text-left text-[length:var(--text-step-0)]">
                 <tbody>
                   {data.invitations.map((inv) => (
-                    <tr key={inv.id} className="border-b-2 border-black">
+                    <tr key={inv.id} className="border-b border-paper-deep">
                       <td className="p-2 font-bold">{inv.email}</td>
                       <td className="p-2">{label(inv.role)}</td>
                       <td className="p-2">sent {date(inv.createdAt)}</td>
                       <td className="p-2 text-right">
-                        <Button disabled={busy} onClick={() => run(() => revokeInvitation(inv.id), `Invitation to ${inv.email} cancelled.`)}>
+                        <Button variant="danger" disabled={busy} onClick={() => run(() => revokeInvitation(inv.id), `Invitation to ${inv.email} cancelled.`)}>
                           Cancel invitation
                         </Button>
                       </td>
@@ -116,10 +116,10 @@ export function StaffPage() {
           )}
 
           <section>
-            <h2 className="mb-2 text-2xl font-black uppercase">Staff ({data.staff.length})</h2>
-            <table className="w-full text-left text-lg">
+            <h2 className="mb-2 display text-[length:var(--text-step-2)]">Staff ({data.staff.length})</h2>
+            <table className="w-full text-left text-[length:var(--text-step-0)]">
               <thead>
-                <tr className="border-b-4 border-black">
+                <tr className="border-b-2 border-line">
                   <th className="p-2">Name</th>
                   <th className="p-2">Email</th>
                   <th className="p-2">Role</th>
@@ -180,18 +180,18 @@ function PendingRow({
 }) {
   const [role, setRole] = useState(roles.includes("cashier") ? "cashier" : (roles[0] ?? ""));
   return (
-    <div className="flex flex-wrap items-center gap-3 border-4 border-black p-3">
+    <div className="flex flex-wrap items-center gap-3 border-2 border-line bg-card p-3">
       <div className="min-w-64 flex-1">
-        <p className="text-xl font-bold">{person.name}</p>
+        <p className="text-[length:var(--text-step-1)] font-semibold">{person.name}</p>
         <p>
           {person.email} · signed up {date(person.createdAt)}
         </p>
       </div>
       <RoleSelect value={role} roles={roles} onChange={setRole} ariaLabel={`Role for ${person.name}`} />
-      <Button variant="solid" disabled={busy || !role} onClick={() => onApprove(role)}>
+      <Button variant="primary" disabled={busy || !role} onClick={() => onApprove(role)}>
         Approve
       </Button>
-      <Button disabled={busy} onClick={onReject}>
+      <Button variant="danger" disabled={busy} onClick={onReject}>
         Reject
       </Button>
     </div>
@@ -212,9 +212,9 @@ function StaffRow({
   onRemove: () => void;
 }) {
   return (
-    <tr className="border-b-2 border-black">
+    <tr className="border-b border-paper-deep">
       <td className="p-2 font-bold">
-        {person.name} {person.isYou && <span className="ml-1 border-2 border-black px-1 text-sm">you</span>}
+        {person.name} {person.isYou && <span className="ml-1 bg-paper-deep px-1.5 text-[length:var(--text-step-00)] text-ink-soft">you</span>}
       </td>
       <td className="p-2">{person.email}</td>
       <td className="p-2">
@@ -227,7 +227,7 @@ function StaffRow({
       <td className="p-2">{date(person.lastSignInAt)}</td>
       <td className="p-2 text-right">
         {person.canManage && (
-          <Button disabled={busy} onClick={onRemove}>
+          <Button variant="danger" disabled={busy} onClick={onRemove}>
             Remove access
           </Button>
         )}
@@ -242,10 +242,10 @@ function InviteForm({ roles, busy, onInvite }: { roles: string[]; busy: boolean;
 
   return (
     <section>
-      <h2 className="mb-2 text-2xl font-black uppercase">Invite someone</h2>
+      <h2 className="mb-2 display text-[length:var(--text-step-2)]">Invite someone</h2>
       <p className="mb-3">They get an email with a sign-up link. Their role is set the moment they create the account, so no approval step.</p>
       <form
-        className="flex flex-wrap items-end gap-3 border-4 border-black p-4"
+        className="flex flex-wrap items-end gap-3 border-2 border-line bg-card p-4"
         onSubmit={(e) => {
           e.preventDefault();
           void onInvite(email.trim(), role).then((ok) => ok && setEmail(""));
@@ -257,7 +257,7 @@ function InviteForm({ roles, busy, onInvite }: { roles: string[]; busy: boolean;
         <Field label="Role">
           <RoleSelect value={role} roles={roles} onChange={setRole} ariaLabel="Role for the invitation" />
         </Field>
-        <Button type="submit" variant="solid" disabled={busy || !email.trim() || !role}>
+        <Button type="submit" variant="primary" disabled={busy || !email.trim() || !role}>
           Send invitation
         </Button>
       </form>

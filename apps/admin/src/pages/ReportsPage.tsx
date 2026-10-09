@@ -36,7 +36,7 @@ export function ReportsPage() {
         <Button onClick={() => void sales.refetch()}>Refresh</Button>
       </div>
 
-      {sales.isError && <p className="border-4 border-black p-3 font-bold">{errorText(sales.error)}</p>}
+      {sales.isError && <p className="border-2 border-brand bg-card p-3 text-[length:var(--text-step-0)] font-semibold text-brand">{errorText(sales.error)}</p>}
       {sales.isLoading && <p>Loading…</p>}
 
       {r && (
@@ -61,12 +61,12 @@ export function ReportsPage() {
             head={["Product", "Quantity", "Sales"]}
             rows={r.topProducts.map((p) => [p.name, String(p.quantity), money(p.sales)])}
           />
-          {r.refundsNeeded > 0 && <p className="text-lg font-bold">{r.refundsNeeded} payment(s) in this period need a refund (see below).</p>}
+          {r.refundsNeeded > 0 && <p className="text-[length:var(--text-step-0)] font-semibold">{r.refundsNeeded} payment(s) in this period need a refund (see below).</p>}
         </>
       )}
 
       <section>
-        <h2 className="mb-2 text-2xl font-black uppercase">Refunds to make</h2>
+        <h2 className="mb-2 display text-[length:var(--text-step-2)]">Refunds to make</h2>
         <p className="mb-2">
           Payments that arrived after their order expired or was cancelled, or for the wrong amount. Refund them in the PayMongo dashboard.
         </p>
@@ -84,41 +84,47 @@ export function ReportsPage() {
 
 function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="border-4 border-black p-4">
-      <p className="text-sm font-bold uppercase">{label}</p>
-      <p className="text-3xl font-black tabular-nums">{value}</p>
-      {note && <p className="text-sm">{note}</p>}
+    <div className="border-2 border-line bg-card p-4">
+      <p className="text-[length:var(--text-step-00)] font-semibold text-ink-soft">{label}</p>
+      <p className="display text-[length:var(--text-step-3)] tabular-nums">{value}</p>
+      {note && <p className="text-[length:var(--text-step-00)] text-ink-soft">{note}</p>}
     </div>
   );
 }
 
+/** Figures a reader compares down a column, so those columns align right and use tabular figures. */
+const NUMERIC = /^(orders|sales|quantity|order total)$/i;
+
 function Table({ title, head, rows, empty = "No sales in this period." }: { title: string; head: string[]; rows: string[][]; empty?: string }) {
+  const align = head.map((h) => (NUMERIC.test(h) ? "text-right tabular-nums" : "text-left"));
   return (
     <div>
-      {title && <h3 className="mb-2 text-xl font-black uppercase">{title}</h3>}
-      <table className="w-full text-left text-lg">
-        <thead>
-          <tr className="border-b-4 border-black">
-            {head.map((h) => (
-              <th key={h} className="p-2">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="border-b-2 border-black">
-              {row.map((cell, j) => (
-                <td key={j} className="p-2">
-                  {cell}
-                </td>
+      {title && <h3 className="mb-2 display text-[length:var(--text-step-1)]">{title}</h3>}
+      <div className="border-2 border-line bg-card">
+        <table className="w-full text-[length:var(--text-step-0)]">
+          <thead>
+            <tr className="border-b-2 border-line bg-paper-deep">
+              {head.map((h, j) => (
+                <th key={h} className={`px-3 py-2 font-semibold ${align[j]}`}>
+                  {h}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {rows.length === 0 && <p className="p-2">{empty}</p>}
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="border-b border-paper-deep last:border-b-0">
+                {row.map((cell, j) => (
+                  <td key={j} className={`px-3 py-2 ${align[j]}`}>
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {rows.length === 0 && <p className="px-3 py-3 text-ink-soft">{empty}</p>}
+      </div>
     </div>
   );
 }

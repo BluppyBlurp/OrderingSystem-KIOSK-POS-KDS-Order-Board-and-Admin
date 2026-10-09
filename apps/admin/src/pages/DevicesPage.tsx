@@ -30,7 +30,7 @@ export function DevicesPage() {
       <ErrorBox message={error} onDismiss={() => setError(null)} />
 
       <form
-        className="flex items-end gap-3 border-4 border-black p-4"
+        className="flex flex-wrap items-end gap-3 border-2 border-line bg-card p-4"
         onSubmit={(e) => {
           e.preventDefault();
           void run(async () => {
@@ -50,16 +50,16 @@ export function DevicesPage() {
             <option value="Board">Order board</option>
           </select>
         </Field>
-        <Button type="submit" variant="solid" disabled={!name.trim()}>
+        <Button type="submit" variant="primary" disabled={!name.trim()}>
           Register
         </Button>
       </form>
 
       {token && (
-        <div className="flex flex-col gap-3 border-8 border-black p-4">
-          <p className="text-xl font-black">Token for {token.name}: shown only once</p>
+        <div className="flex flex-col gap-3 border-2 border-accent-deep bg-accent/15 p-4">
+          <p className="display text-[length:var(--text-step-1)]">Token for {token.name}: shown only once</p>
           <p>Enter it on the device's setup screen now. It can't be shown again; if it's lost, revoke the device and register a new one.</p>
-          <code className="break-all border-4 border-black bg-black p-3 text-lg text-white" data-testid="device-token">
+          <code className="break-all border-2 border-line bg-ink p-3 text-[length:var(--text-step-0)] text-paper select-all" data-testid="device-token">
             {token.value}
           </code>
           <div className="flex gap-3">
@@ -78,9 +78,9 @@ export function DevicesPage() {
         </div>
       )}
 
-      <table className="w-full text-left text-lg">
+      <table className="w-full text-left text-[length:var(--text-step-0)]">
         <thead>
-          <tr className="border-b-4 border-black">
+          <tr className="border-b-2 border-line">
             <th className="p-2">Name</th>
             <th className="p-2">Kind</th>
             <th className="p-2">Registered</th>
@@ -91,7 +91,7 @@ export function DevicesPage() {
         </thead>
         <tbody>
           {(devices.data ?? []).map((d) => (
-            <tr key={d.id} className={`border-b-2 border-black ${d.isActive ? "" : "opacity-50"}`}>
+            <tr key={d.id} className={`border-b border-paper-deep ${d.isActive ? "" : "opacity-50"}`}>
               <td className="p-2 font-bold">{d.name}</td>
               <td className="p-2">{d.kind}</td>
               <td className="p-2">{new Date(d.createdAt).toLocaleDateString()}</td>
