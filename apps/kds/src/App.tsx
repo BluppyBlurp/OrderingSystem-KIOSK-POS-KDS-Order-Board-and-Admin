@@ -3,8 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { advance, setTokenSource, TICKETS_KEY, useTickets, type Order, type Step } from "./api";
 import { useSession } from "./auth";
+import { BRAND } from "./brand";
 import { PendingApproval } from "./components/PendingApproval";
-import { Button, whereLabel } from "./components/ui";
+import { Button, Mark, whereLabel } from "./components/ui";
 import { ALLOWED_ROLES } from "./config";
 import { beep, soundEnabled, unlockSound } from "./lib/beep";
 import { ageLevel, ageSeconds, formatAge, newIds } from "./lib/tickets";
@@ -29,7 +30,7 @@ export function App() {
 
 const COLUMNS: { status: Order["status"]; title: string; action: { step: Step; label: string } }[] = [
   { status: "Paid", title: "New", action: { step: "preparing", label: "Start" } },
-  { status: "Preparing", title: "Preparing", action: { step: "ready", label: "Ready" } },
+  { status: "Preparing", title: "Cooking", action: { step: "ready", label: "Ready" } },
   { status: "Ready", title: "Ready", action: { step: "complete", label: "Handed over" } },
 ];
 
@@ -94,46 +95,60 @@ function KitchenScreen() {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex min-h-16 items-center justify-between gap-4 border-b-4 border-black px-4">
-        <h1 className="text-2xl font-black uppercase">Kitchen</h1>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-2 text-sm font-bold uppercase" title="Live updates">
-            <span className={`inline-block size-3 rounded-full border-2 border-black ${hub === "live" ? "bg-black" : "bg-white"}`} />
-            {hub === "live" ? "Live" : hub === "connecting" ? "Connecting…" : "Offline (refreshing every 15 s)"}
-          </span>
+    <div className="flex h-full flex-col bg-paper">
+      <header className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-2 bg-brand px-4 py-2 text-paper">
+        <Mark className="h-6 w-6 shrink-0" />
+        <span className="display text-[length:var(--text-step-1)]">{BRAND.name} kitchen</span>
+
+        <span className="flex items-center gap-2 text-[length:var(--text-step-0)]">
+          <span
+            className={`inline-block size-3 rounded-full ${hub === "live" ? "bg-accent" : "border-2 border-paper/70"}`}
+            aria-hidden="true"
+          />
+          {hub === "live" ? "Live" : hub === "connecting" ? "Connecting…" : "Offline — refreshing every 15s"}
+        </span>
+
+        <div className="ml-auto flex items-center gap-3">
           {!sound && (
             <Button
-              variant="solid"
               onClick={() => {
                 setSound(unlockSound());
                 beep();
               }}
             >
-              Enable sound
+              Turn on sound
             </Button>
           )}
-          <span className="font-bold">{session.name}</span>
+          <span className="text-[length:var(--text-step-0)]">{session.name}</span>
           <Button onClick={session.signOut}>Sign out</Button>
         </div>
       </header>
 
       {error && (
-        <button type="button" className="border-b-4 border-black bg-black p-3 text-left text-lg font-bold text-white" onClick={() => setError(null)}>
-          {error} (tap to dismiss)
+        <button
+          type="button"
+          className="border-b-3 border-line bg-brand-deep p-3 text-left text-[length:var(--text-step-1)] font-semibold text-paper"
+          onClick={() => setError(null)}
+        >
+          {error} — tap to dismiss
         </button>
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-3">
+      {/* Three lanes side by side on a kitchen screen; stacked if someone opens this on a tablet. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-3">
         {COLUMNS.map((column) => {
           const list = (tickets.data ?? []).filter((t) => t.status === column.status);
           return (
-            <section key={column.status} className="flex min-h-0 flex-col border-r-4 border-black last:border-r-0">
-              <h2 className="border-b-4 border-black p-3 text-xl font-black uppercase">
-                {column.title} ({list.length})
+            <section key={column.status} className="flex min-h-0 flex-col border-line md:border-r-3 md:last:border-r-0">
+              <h2 className="flex items-baseline gap-2 border-b-3 border-line bg-card px-4 py-2">
+                <span className="display text-[length:var(--text-step-2)]">{column.title}</span>
+                <span className="text-[length:var(--text-step-1)] text-ink-soft tabular-nums">{list.length}</span>
               </h2>
               <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
-                {tickets.isLoading && <p className="text-lg">Loading…</p>}
+                {tickets.isLoading && <p className="text-[length:var(--text-step-1)] text-ink-soft">Loading…</p>}
+                {!tickets.isLoading && list.length === 0 && (
+                  <p className="p-4 text-center text-[length:var(--text-step-1)] text-ink-soft">Nothing here</p>
+                )}
                 {list.map((order) => (
                   <Ticket
                     key={order.id}
@@ -154,11 +169,20 @@ function KitchenScreen() {
   );
 }
 
-const LEVEL_STYLE = {
-  ok: "border-black",
-  warn: "border-amber-500 bg-amber-50",
-  late: "border-red-600 bg-red-50",
-};
+/**
+ * Amber at five minutes, red at ten. Here these are status colours, not brand ones — which is why a
+ * late ticket's button turns ink: a red button on a red frame stops reading as the thing to press.
+ */
+const LEVEL = {
+  ok: { card: "border-line", head: "bg-card", timer: "text-ink", button: "" },
+  warn: { card: "border-accent-deep", head: "bg-accent", timer: "text-ink", button: "" },
+  late: {
+    card: "border-brand",
+    head: "bg-brand",
+    timer: "text-paper",
+    button: "bg-ink border-ink text-paper shadow-[inset_0_-5px_0_#000]",
+  },
+} as const;
 
 function Ticket({
   order,
@@ -177,31 +201,54 @@ function Ticket({
 }) {
   const age = ageSeconds(order.paidAt, order.createdAt, now);
   const level = ageLevel(age);
+  const skin = LEVEL[level];
+  const toTable = order.type === "ServeToTable";
 
   return (
-    <article className={`border-4 ${LEVEL_STYLE[level]} ${flash ? "animate-pulse outline-8 outline-black" : ""}`}>
-      <div className="flex items-baseline justify-between gap-2 border-b-4 border-inherit p-3">
-        <span className="text-4xl font-black">{order.orderNumber}</span>
-        <span className={`text-2xl font-black tabular-nums ${level === "late" ? "text-red-700" : ""}`}>{formatAge(age)}</span>
+    <article className={`border-3 bg-card ${skin.card} ${flash ? "arrive" : ""}`}>
+      <div className={`flex items-center justify-between gap-3 border-b-3 border-inherit px-3 py-2 ${skin.head}`}>
+        <span className={`display text-[length:var(--text-step-3)] leading-none ${level === "late" ? "text-paper" : ""}`}>
+          {order.orderNumber}
+        </span>
+        <span className={`display text-[length:var(--text-step-2)] leading-none tabular-nums ${skin.timer}`}>
+          {formatAge(age)}
+        </span>
       </div>
-      <p className={`px-3 pt-2 text-lg font-bold uppercase ${order.type === "ServeToTable" ? "text-2xl" : ""}`}>{whereLabel(order)}</p>
-      <ul className="flex flex-col gap-2 p-3">
+
+      {/* Where it goes, called out: a table number missed here means food walked to the wrong place. */}
+      <p
+        className={`px-3 py-2 font-semibold ${
+          toTable
+            ? "bg-paper-deep text-[length:var(--text-step-2)]"
+            : "text-[length:var(--text-step-0)] text-ink-soft"
+        }`}
+      >
+        {whereLabel(order)}
+      </p>
+
+      <ul className="flex flex-col gap-2.5 px-3 py-3">
         {order.items.map((item, i) => (
           <li key={i}>
-            <p className="text-xl font-bold">
-              {item.quantity} × {item.name}
+            <p className="flex gap-2 text-[length:var(--text-step-1)] font-semibold">
+              <span className="display shrink-0 bg-ink px-1.5 text-paper tabular-nums">{item.quantity}</span>
+              {item.name}
             </p>
             {item.modifiers.map((m, j) => (
-              <p key={j} className="pl-6 text-lg">
-                – {m.name}
+              <p key={j} className="pl-8 text-[length:var(--text-step-0)] text-ink-soft">
+                {m.name}
               </p>
             ))}
-            {item.notes && <p className="pl-6 text-lg font-bold italic">Note: {item.notes}</p>}
+            {item.notes && (
+              <p className="mt-1 ml-8 border-l-4 border-brand bg-paper px-2 py-1 text-[length:var(--text-step-0)] font-semibold">
+                {item.notes}
+              </p>
+            )}
           </li>
         ))}
       </ul>
+
       <div className="p-3 pt-0">
-        <Button variant="solid" size="lg" className="w-full" disabled={busy} onClick={onAction}>
+        <Button variant="primary" size="lg" className={`w-full ${skin.button}`} disabled={busy} onClick={onAction}>
           {busy ? "…" : actionLabel}
         </Button>
       </div>
@@ -211,9 +258,9 @@ function Ticket({
 
 function NoAccess({ message, onSignOut }: { message: string; onSignOut: () => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 p-10 text-center">
-      <p className="max-w-2xl text-2xl font-bold">{message}</p>
-      <Button variant="solid" size="lg" onClick={onSignOut}>
+    <div className="flex h-full flex-col items-center justify-center gap-6 bg-paper p-10 text-center">
+      <p className="max-w-2xl text-[length:var(--text-step-1)] font-semibold">{message}</p>
+      <Button variant="primary" size="lg" className="notch-sm" onClick={onSignOut}>
         Sign out
       </Button>
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button } from "./ui";
+import { BRAND } from "../brand";
+import { Button, Mark } from "./ui";
 
 /**
  * Signed in, but no role yet: either they signed up themselves and a manager hasn't approved them, or their access
@@ -23,19 +24,26 @@ export function PendingApproval({ name, onRefresh, onSignOut }: { name: string; 
   }, [onRefresh]);
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 p-10 text-center">
-      <h1 className="text-4xl font-black uppercase">Waiting for approval</h1>
-      <p className="max-w-2xl text-2xl">
-        Hi {name}. Your account is set up, but a manager still has to approve it and choose your role. Ask them to open
-        Admin → Staff. This screen updates on its own once you're approved.
-      </p>
-      <div className="flex gap-4">
-        <Button variant="solid" size="lg" disabled={checking} onClick={() => void check()}>
-          {checking ? "Checking…" : "Check again"}
-        </Button>
-        <Button size="lg" onClick={onSignOut}>
-          Sign out
-        </Button>
+    <div className="flex h-full flex-col bg-paper">
+      <header className="flex items-center gap-2.5 bg-brand px-4 py-2 text-paper">
+        <Mark className="h-6 w-6 shrink-0" />
+        <span className="display text-[length:var(--text-step-1)]">{BRAND.name} kitchen</span>
+      </header>
+
+      <div className="mx-auto flex max-w-2xl flex-1 flex-col justify-center gap-5 p-8 text-center">
+        <h1 className="display text-[length:var(--text-step-4)]">Waiting for approval</h1>
+        <p className="text-[length:var(--text-step-1)] text-ink-soft">
+          Hi {name}. Your account exists, but a manager still has to approve it and pick your role. Ask them to open
+          Admin, then Staff. This screen updates on its own once you're approved.
+        </p>
+        <div className="flex justify-center gap-3">
+          <Button variant="primary" size="lg" className="notch-sm" disabled={checking} onClick={() => void check()}>
+            {checking ? "Checking…" : "Check again"}
+          </Button>
+          <Button size="lg" onClick={onSignOut}>
+            Sign out
+          </Button>
+        </div>
       </div>
     </div>
   );
