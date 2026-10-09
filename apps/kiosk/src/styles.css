@@ -1,8 +1,36 @@
 @import "tailwindcss";
 
-/* Black and white only for now; the real design comes later. */
+/*
+ * Hapag kiosk — design tokens.
+ *
+ * Red, yellow and white, but deliberately not the big chains': the field is warm paper rather than
+ * pure white, red is structure (rules and frames) rather than a banner, and yellow marks state —
+ * what is selected, what to touch — instead of filling every button. Surfaces carry a clipped
+ * corner, echoing the torn order slip the kiosk prints.
+ */
 @theme {
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-sans: Archivo, ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Archivo Black", Archivo, ui-sans-serif, system-ui, sans-serif;
+
+  --color-paper: #faf4e6;
+  --color-paper-deep: #f1e7d2;
+  --color-card: #ffffff;
+  --color-ink: #241612;
+  --color-ink-soft: #7a6a60;
+  --color-brand: #b32317;
+  --color-brand-deep: #7d150e;
+  --color-accent: #f5b700;
+  --color-accent-deep: #d89c00;
+  --color-line: #241612;
+
+  /* Fluid type: one scale that holds from a phone to a 1080×1920 portrait kiosk. */
+  --text-step-0: clamp(0.95rem, 0.8rem + 0.5vw, 1.15rem);
+  --text-step-1: clamp(1.1rem, 0.9rem + 0.7vw, 1.45rem);
+  --text-step-2: clamp(1.35rem, 1rem + 1.1vw, 1.9rem);
+  --text-step-3: clamp(1.7rem, 1.2rem + 1.7vw, 2.6rem);
+  --text-step-4: clamp(2.1rem, 1.4rem + 2.6vw, 3.6rem);
+  --text-step-5: clamp(2.8rem, 1.6rem + 4.2vw, 5.5rem);
+  --text-step-6: clamp(3.6rem, 1.8rem + 7vw, 9rem);
 }
 
 html,
@@ -12,13 +40,46 @@ body,
 }
 
 body {
-  background: #fff;
-  color: #000;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-synthesis-weight: none;
   /* Kiosk: no text selection, no long-press menus, no accidental zoom. */
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
   overscroll-behavior: none;
+}
+
+/* The one shape motif: a clipped corner, like a torn ticket stub. */
+.notch {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.25rem), calc(100% - 1.25rem) 100%, 0 100%);
+}
+.notch-sm {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.75rem), calc(100% - 0.75rem) 100%, 0 100%);
+}
+
+/* Awning stripe — used once, on the brand strip. */
+.stripe {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-brand) 0 1.4rem,
+    var(--color-brand-deep) 1.4rem 2.8rem
+  );
+}
+
+/* Touch feedback without transitions that linger on a slow panel. */
+.press:active {
+  transform: translateY(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 #print-root {
