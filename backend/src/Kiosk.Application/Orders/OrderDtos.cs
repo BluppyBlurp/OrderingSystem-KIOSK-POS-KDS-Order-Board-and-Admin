@@ -38,8 +38,18 @@ public sealed record OrderDto(
             i.Modifiers.OrderBy(m => m.SortOrder).Select(m => new OrderItemModifierDto(m.NameSnapshot, m.PriceDeltaSnapshot)).ToList())).ToList());
 }
 
-/// <summary>What the kiosk needs to show after paying: the cash slip QR token or the checkout URL.</summary>
-public sealed record KioskOrderDto(OrderDto Order, string? SlipToken, string? CheckoutUrl);
+/// <summary>
+/// What the kiosk needs to show after paying: the cash slip QR token, the QR Ph image, the card reader's key,
+/// or a URL for the customer's phone (a hosted checkout, or the bank's 3DS page for a card).
+/// QrImage, QrTestUrl and CardPublicKey come only with the pay response; they are not stored.
+/// </summary>
+public sealed record KioskOrderDto(
+    OrderDto Order,
+    string? SlipToken,
+    string? CheckoutUrl,
+    string? QrImage = null,
+    string? QrTestUrl = null,
+    string? CardPublicKey = null);
 
 public sealed record CreateOrderLine(Guid ProductId, int Quantity, IReadOnlyList<Guid>? ModifierIds, string? Notes);
 
@@ -47,5 +57,8 @@ public sealed record CreateOrderLine(Guid ProductId, int Quantity, IReadOnlyList
 public sealed record CreateOrderRequest(DiningOption DiningOption, OrderType OrderType, int? TableNumber, IReadOnlyList<CreateOrderLine> Items);
 
 public sealed record PayRequest(PaymentMethod Method);
+
+/// <summary>A card the reader already turned into a gateway payment method (pm_…). Never a card number.</summary>
+public sealed record CardTapRequest(string PaymentMethodId);
 
 public sealed record TableStatusDto(int TableNumber, bool InUse);

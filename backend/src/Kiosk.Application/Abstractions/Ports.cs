@@ -19,10 +19,44 @@ public interface IOrderNotifier
 
 public sealed record CheckoutSession(string ProviderRef, string CheckoutUrl);
 
+/// <summary>
+/// A dynamic QR Ph code for one order, scanned straight from any InstaPay bank or e-wallet app.
+/// <paramref name="ImageDataUri"/> is ready for an &lt;img src&gt;. <paramref name="TestUrl"/> pays it in test mode only.
+/// </summary>
+public sealed record QrPhCode(string ProviderRef, string ImageDataUri, string? TestUrl);
+
+/// <summary>
+/// A card payment waiting for the reader. <paramref name="PublicKey"/> lets the kiosk turn the card into a gateway
+/// payment method itself, so card numbers never reach this API; null on the stub.
+/// </summary>
+public sealed record CardPaymentStart(string ProviderRef, string? PublicKey);
+
+public enum IntentStatus { Succeeded, Failed, NeedsAction, Pending }
+
+/// <summary>
+/// The gateway's own answer about a payment intent, from a call this API made with the secret key, so it can be
+/// trusted like a webhook. <paramref name="ActionUrl"/> is the bank's 3DS page for a card.
+/// </summary>
+public sealed record IntentResult(IntentStatus Status, decimal? Amount, string? FailureReason, string? ActionUrl);
+
 public interface IPaymentGateway
 {
     string Name { get; }
+
+    /// <summary>Hosted checkout page (e-wallets).</summary>
     Task<CheckoutSession> CreateCheckoutAsync(Order order, PaymentMethod method, CancellationToken ct);
+
+    Task<QrPhCode> CreateQrPhAsync(Order order, CancellationToken ct);
+
+    Task<CardPaymentStart> CreateCardPaymentAsync(Order order, CancellationToken ct);
+
+    Task<IntentResult> AttachCardAsync(string providerRef, string paymentMethodId, Guid orderId, CancellationToken ct);
+
+    /// <summary>
+    /// Current state of a payment intent (QR Ph or card), or null for references this gateway did not create
+    /// as intents (hosted checkouts). Backs up the webhook, and stands in for it where none can reach the API.
+    /// </summary>
+    Task<IntentResult?> GetIntentAsync(string providerRef, CancellationToken ct);
 }
 
 /// <summary>Short signed token for the cash slip QR, so a screenshot cannot be replayed against another order.</summary>

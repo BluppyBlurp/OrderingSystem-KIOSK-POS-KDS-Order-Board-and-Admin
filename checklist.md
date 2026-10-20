@@ -124,10 +124,13 @@
 
 ### QR Ph — PayMongo sandbox (2026-10-08)
 - [x] ⭐ `PaymentMethod.QrPh` → checkout session with `qrph` *(verified with the stub; real sandbox pending)*
-- [ ] Direct QR Ph image on the kiosk (Payment Intent API) instead of a QR of the checkout page
+- [~] Direct QR Ph image on the kiosk (Payment Intent API) instead of a QR of the checkout page; `payment.paid` / `payment.failed` webhooks matched by `payment_intent_id` *(2026-10-20; verified with the stub, real sandbox pending)*
+- [~] API checks the payment intent with PayMongo on each kiosk poll, so QR Ph settles without a webhook (local dev) *(2026-10-20; stub verified)*
 
 ### Card — PayMongo sandbox
-- [~] ⭐ Card uses the same Checkout Session; PayMongo's hosted page handles 3DS *(replaces a hand-built payment-intent flow)*
+- [~] ⭐ ~~Card uses the same Checkout Session~~ → **Tap card** (2026-10-20): card Payment Intent; the kiosk's card reader turns the card into a `pm_…` with the public key; `POST /kiosk/orders/{id}/card-tap` attaches it with the secret key and settles at once; 3DS → bank page shown as a QR *(stub verified; real sandbox pending)*
+- [x] Simulated card reader with PayMongo's test cards (`VITE_CARD_READER=simulated`) until the real reader arrives (2026-10-20)
+- [ ] Real card reader: replace `src/lib/cardReader.ts` with the reader's SDK
 - [x] ⭐ Same webhook path, same idempotency guarantees
 - [x] Declined card → clear kiosk message + retry: any `Failed` order shows "The payment didn't go through" with Try again / Pay at counter; switching to cash from `Failed` no longer errors (2026-10-08)
 

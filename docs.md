@@ -278,7 +278,39 @@ Customer                 Kiosk                   POS                    Backend
 - The POS also shows a live list of pending cash orders, so a customer who lost the slip can still be found by number or total.
 - Unpaid after the window → `Expired`, stock restored, removed from the POS list.
 
-### 7.2 E-wallet (GCash / Maya) and Card — sandbox
+### 7.2 QR Ph and card tap — PayMongo Payment Intents
+
+The kiosk offers three ways to pay: **Pay at the counter** (§7.1), **QR Ph** and **Tap card**.
+
+```
+QR Ph
+Kiosk ──▶ POST /orders/{id}/pay {method: QrPh}
+          API: create payment_intent (qrph) → create payment_method (qrph, expiry = order window) → attach
+      ◀── qrImage (PayMongo's QR Ph code, a data: URI)
+Customer scans it with GCash, Maya or any InstaPay bank app
+PayMongo ──▶ POST /api/webhooks/paymongo  payment.paid {payment_intent_id}  ──▶ Paid
+
+Card tap
+Kiosk ──▶ POST /orders/{id}/pay {method: Card}
+          API: create payment_intent (card, 3DS automatic)
+      ◀── cardPublicKey
+Reader turns the card into a payment method with the public key (pm_…)   ← card number never reaches the API
+Kiosk ──▶ POST /orders/{id}/card-tap {paymentMethodId}
+          API attaches it with the secret key; PayMongo answers at once:
+            succeeded → Paid        failed → Failed (Try again / Pay at counter)
+            awaiting_next_action → checkoutUrl = the bank's 3DS page; the kiosk shows it as a QR for the phone
+```
+
+- **QR Ph is the InstaPay QR.** QR Ph is the national QR standard and settles over InstaPay, so one code works in every member app; there is no separate "InstaPay QR". The code is dynamic: single use, exact amount, alive for the order's payment window (PayMongo allows 60–9000 s).
+- **Who may set `Paid`:** a signature-verified webhook, or an answer PayMongo gave this API on a call it made itself with the secret key (the card attach; the status check below). Never anything the kiosk or a redirect claims. Each answer goes through `PaymentWebhookService`, so it is applied once, amount-checked, and flagged for refund when the order already expired or was cancelled.
+- **Card settles like a terminal.** The attach response is authoritative, so the customer sees "Paid" right after the tap; the later `payment.paid` webhook finds the payment already settled and is a no-op.
+- **Status check on poll.** While an online payment is open, each kiosk poll (`GET /kiosk/orders/{id}`, every 2 s) has the API retrieve the payment intent from PayMongo. It backs up a slow or lost webhook, and it is what lets QR Ph complete in local development, where PayMongo's webhook cannot reach `localhost`.
+- **The card reader** is a seam in the kiosk (`src/lib/cardReader.ts`): a reader's only job is to produce a PayMongo payment method id. Until there is real hardware, `VITE_CARD_READER=simulated` shows a stand-in reader that taps PayMongo's published test cards (approved, 3DS, declined, insufficient funds, expired). Unset, the kiosk hides **Tap card**. `card-tap` accepts only `pm_…` ids, so a card number sent by mistake is refused, never logged or forwarded.
+- **Webhook events to register** in PayMongo: `payment.paid`, `payment.failed` (QR Ph, card) and `checkout_session.payment.paid` (e-wallet checkouts).
+- **Stub** (`PayMongo:UseStub`, local dev and tests): QR Ph returns a labelled placeholder image, completed with **Simulate payment (dev)**; the simulated reader sends `pm_stub_*` stand-ins that the stub settles by name.
+- **Not yet verified against the sandbox** (the docs leave these open): the location of the test-mode `test_url` for paying a QR Ph code (read from `next_action.code.test_url`; the kiosk shows **Pay test QR (sandbox)** when present), the shape of `last_payment_error`, and that attaching with the secret key needs no `client_key`.
+
+### 7.3 E-wallet (GCash / Maya) — hosted checkout
 
 ```
 Kiosk ──▶ POST /orders ──▶ POST /orders/{id}/pay {method: ewallet}
@@ -292,12 +324,11 @@ Backend marks Paid ──▶ SignalR "OrderPaid" ──▶ KDS + Board + the wai
 Kiosk auto-advances to the confirmation screen with the order number
 ```
 
-- Both e-wallet (GCash, Maya) and card use a PayMongo **Checkout Session**. PayMongo's hosted page handles method selection, retries and card 3DS, so the backend never builds a payment-intent flow by hand.
-- If the customer backs out on the kiosk, `POST /api/kiosk/orders/{id}/cancel-checkout` moves the order to `Failed`, and the kiosk offers Retry or Switch to cash. The payment record stays open: if they finish paying on their phone anyway, the webhook still moves the order to `Paid`.
+- E-wallets use a PayMongo **Checkout Session**: PayMongo's hosted page handles the wallet redirect. The kiosk does not offer it today (QR Ph covers GCash and Maya), but the API still supports it.
+- If the customer backs out on the kiosk, `POST /api/kiosk/orders/{id}/cancel-checkout` moves the order to `Failed`, and the kiosk offers Retry or Switch to cash. The payment record stays open: if they finish paying on their phone anyway, the webhook still moves the order to `Paid`. The same applies to QR Ph and card.
 - Every event carries the paid amount. A mismatch with the order total is never marked `Paid`; it is flagged for a human (`OrderEvent.RefundNeeded`).
-- On the kiosk, **Pay here** offers **QR Ph** (any bank or e-wallet app: GCash, Maya, banks) and **Card**. Both open a Checkout Session; the kiosk shows a QR of the checkout page and the customer pays **on their own phone**, so nobody types card details on a public screen. A direct QR Ph image on the kiosk (Payment Intent API) is a later improvement.
 - The order goes to the kitchen automatically, **with or without a table number** — the table number only changes what the KDS ticket and the server see, not whether the order flows.
-- The kiosk never trusts a client-side "payment succeeded" redirect. The webhook is the only thing that sets `Paid`. The redirect just stops the spinner; if the webhook is slow, the kiosk polls `GET /kiosk/orders/{id}` as a fallback.
+- The kiosk never trusts a client-side "payment succeeded" redirect. The redirect just stops the spinner; if the webhook is slow, the kiosk polls `GET /kiosk/orders/{id}` as a fallback.
 - Failed payment → `Failed`, and the kiosk offers Retry or Switch to cash. An abandoned checkout simply expires.
 
 ---
@@ -345,7 +376,8 @@ StockMovement (optional, per-item stock ledger)
 |---|---|---|
 | GET | `/api/kiosk/menu` | Categories, products, modifiers, availability |
 | POST | `/api/kiosk/orders` | `{diningOption, orderType, tableNumber?, items[]}` → order id, order number, totals, `expiresAt` |
-| POST | `/api/kiosk/orders/{id}/pay` | `{method}` → cash slip (QR token) or checkout URL. Allowed from `Created` or `Failed` |
+| POST | `/api/kiosk/orders/{id}/pay` | `{method}` → cash slip (QR token), QR Ph image, card reader key, or checkout URL. Allowed from `Created` or `Failed` |
+| POST | `/api/kiosk/orders/{id}/card-tap` | `{paymentMethodId: "pm_…"}` from the card reader → settles at once (`Paid` / `Failed`), or returns the bank's 3DS page as `checkoutUrl` |
 | POST | `/api/kiosk/orders/{id}/cancel-checkout` | Customer backed out of the online checkout → `Failed` |
 | GET | `/api/kiosk/orders/{id}` | Status poll fallback. Only orders this kiosk created; others return 404 |
 | GET | `/api/kiosk/orders/{id}/slip` | Cash slip PDF (80 mm, with the QR). Only `AwaitingPayment` orders this kiosk created |

@@ -1,3 +1,6 @@
+using System.Text.Json.Nodes;
+using Kiosk.Application.Abstractions;
+using Kiosk.Application.Payments;
 using Kiosk.Infrastructure.Payments;
 using Kiosk.Infrastructure.Persistence;
 using Kiosk.Infrastructure.Security;
@@ -115,6 +118,82 @@ public class PayMongoWebhookParserTests
         var body = PaidBody().Replace("checkout_session.payment.paid", "source.chargeable");
         Assert.Null(Parser.Parse(body, $"t=1,te={PayMongoWebhookParser.Sign(body, 1, Secret)}"));
     }
+
+    private static string PaymentBody(string type, string intent = "\"payment_intent_id\":\"pi_abc\",") => """
+        {"data":{"id":"evt_456","type":"event","attributes":{"type":"TYPE","livemode":false,
+        "data":{"id":"pay_2","type":"payment","attributes":{"amount":14900,"status":"x",INTENT"failed_code":"card_declined","failed_message":"Card declined"}}}}}
+        """.Replace("TYPE", type).Replace("INTENT", intent);
+
+    private static PaymentEvent? ParseSigned(string body) =>
+        Parser.Parse(body, $"t=1,te={PayMongoWebhookParser.Sign(body, 1, Secret)}");
+
+    [Fact]
+    public void Payment_paid_is_matched_by_its_payment_intent()
+    {
+        var evt = ParseSigned(PaymentBody("payment.paid"));
+
+        Assert.NotNull(evt);
+        Assert.Equal("pi_abc", evt.ProviderRef);
+        Assert.Equal(149.00m, evt.Amount);
+        Assert.True(evt.Succeeded);
+        Assert.Null(evt.FailureReason);
+    }
+
+    [Fact]
+    public void Payment_failed_carries_the_reason()
+    {
+        var evt = ParseSigned(PaymentBody("payment.failed"));
+
+        Assert.NotNull(evt);
+        Assert.False(evt.Succeeded);
+        Assert.Equal("Card declined", evt.FailureReason);
+    }
+
+    [Fact]
+    public void A_payment_without_an_intent_is_left_to_its_checkout_session_event() =>
+        Assert.Null(ParseSigned(PaymentBody("payment.paid", intent: "")));
+}
+
+public class PayMongoIntentTests
+{
+    private static IntentResult Parse(string attributes) =>
+        PayMongoGateway.ParseIntent(JsonNode.Parse("""{"id":"pi_1","attributes":{"amount":18900,ATTRS}}""".Replace("ATTRS", attributes)));
+
+    [Fact]
+    public void Succeeded_intent_is_paid_with_its_amount()
+    {
+        var result = Parse("\"status\":\"succeeded\"");
+        Assert.Equal((IntentStatus.Succeeded, 189.00m), (result.Status, result.Amount));
+    }
+
+    [Fact]
+    public void Awaiting_next_action_hands_over_the_3ds_page()
+    {
+        var result = Parse("""
+            "status":"awaiting_next_action","next_action":{"type":"redirect","redirect":{"url":"https://bank.test/3ds","return_url":"x"}}
+            """);
+        Assert.Equal((IntentStatus.NeedsAction, "https://bank.test/3ds"), (result.Status, result.ActionUrl));
+    }
+
+    [Fact]
+    public void A_failed_attempt_is_a_failure_with_its_message()
+    {
+        var result = Parse("""
+            "status":"awaiting_payment_method","last_payment_error":{"failed_code":"insufficient_funds","failed_message":"Insufficient funds"}
+            """);
+        Assert.Equal((IntentStatus.Failed, "Insufficient funds"), (result.Status, result.FailureReason));
+    }
+
+    [Fact]
+    public void A_fresh_intent_is_still_pending() =>
+        Assert.Equal(IntentStatus.Pending, Parse("\"status\":\"awaiting_payment_method\",\"last_payment_error\":null").Status);
+
+    [Theory]
+    [InlineData("iVBORw0KGgo", "data:image/png;base64,iVBORw0KGgo")]
+    [InlineData("data:image/png;base64,iVBORw0KGgo", "data:image/png;base64,iVBORw0KGgo")]
+    [InlineData("https://cdn.paymongo.test/qr.png", "https://cdn.paymongo.test/qr.png")]
+    public void QR_image_is_always_an_img_source(string given, string expected) =>
+        Assert.Equal(expected, PayMongoGateway.AsImageSource(given));
 }
 
 public class PostgresConnectionStringTests

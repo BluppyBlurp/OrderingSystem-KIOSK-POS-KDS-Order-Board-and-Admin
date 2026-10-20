@@ -56,6 +56,27 @@ internal static class TestApi
         return api.CreateClient().SendAsync(request);
     }
 
+    /// <summary>Posts a PayMongo "payment.paid" / "payment.failed" event for a payment intent (QR Ph, card).</summary>
+    public static Task<HttpResponseMessage> PayMongoPaymentAsync(
+        this KioskApiFactory api, string eventId, string type, string intentId, decimal amount)
+    {
+        var centavos = (long)(amount * 100);
+        var status = type == PayMongoWebhookParser.PaymentPaidEvent ? "paid" : "failed";
+        var body = """
+            {"data":{"id":"EVENT_ID","type":"event","attributes":{"type":"TYPE","livemode":false,"data":{"id":"pay_x","type":"payment","attributes":{"amount":CENTAVOS,"status":"STATUS","payment_intent_id":"INTENT_ID","failed_message":"Declined by the bank"}}}}}
+            """
+            .Replace("EVENT_ID", eventId).Replace("TYPE", type).Replace("INTENT_ID", intentId)
+            .Replace("CENTAVOS", centavos.ToString()).Replace("STATUS", status);
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/paymongo")
+        {
+            Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Add(PayMongoWebhookParser.SignatureHeader,
+            $"t={timestamp},te={PayMongoWebhookParser.Sign(body, timestamp, KioskApiFactory.WebhookSecret)},li=");
+        return api.CreateClient().SendAsync(request);
+    }
+
     public static void AssertStatus(this HttpResponseMessage response, HttpStatusCode expected) =>
         Assert.True(response.StatusCode == expected,
             $"Expected {(int)expected}, got {(int)response.StatusCode}: {response.Content.ReadAsStringAsync().Result}");

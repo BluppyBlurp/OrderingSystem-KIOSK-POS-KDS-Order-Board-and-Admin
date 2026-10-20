@@ -1,10 +1,12 @@
 using FluentValidation;
 using Kiosk.Application.Abstractions;
 using Kiosk.Application.Common;
+using Kiosk.Application.Payments;
 using Kiosk.Domain.Common;
 using Kiosk.Domain.Menu;
 using Kiosk.Domain.Orders;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Kiosk.Application.Orders;
@@ -13,12 +15,15 @@ public sealed class KioskOrderService(
     IAppDbContext db,
     IValidator<CreateOrderRequest> createValidator,
     IValidator<PayRequest> payValidator,
+    IValidator<CardTapRequest> cardTapValidator,
     IOrderNumberGenerator numbers,
     IPaymentGateway gateway,
+    PaymentWebhookService payments,
     ISlipTokenService slipTokens,
     IOrderNotifier notifier,
     BusinessClock clock,
-    IOptions<OrderingOptions> options)
+    IOptions<OrderingOptions> options,
+    ILogger<KioskOrderService> logger)
 {
     /// <summary>
     /// Builds the order from database prices (client prices are never accepted), reserves stock,
@@ -64,19 +69,62 @@ public sealed class KioskOrderService(
         var now = clock.Now;
         order.ChoosePayment(request.Method, now);
 
-        string? checkoutUrl = null;
-        if (request.Method != PaymentMethod.Cash)
+        string? checkoutUrl = null, qrImage = null, qrTestUrl = null, cardPublicKey = null;
+        switch (request.Method)
         {
-            var session = await gateway.CreateCheckoutAsync(order, request.Method, ct);
-            order.StartOnlinePayment(gateway.Name, session.ProviderRef, session.CheckoutUrl, now);
-            checkoutUrl = session.CheckoutUrl;
+            case PaymentMethod.Cash:
+                break;
+            case PaymentMethod.QrPh:
+                var qr = await gateway.CreateQrPhAsync(order, ct);
+                order.StartOnlinePayment(gateway.Name, qr.ProviderRef, checkoutUrl: null, now);
+                (qrImage, qrTestUrl) = (qr.ImageDataUri, qr.TestUrl);
+                break;
+            case PaymentMethod.Card:
+                var card = await gateway.CreateCardPaymentAsync(order, ct);
+                order.StartOnlinePayment(gateway.Name, card.ProviderRef, checkoutUrl: null, now);
+                cardPublicKey = card.PublicKey;
+                break;
+            default:
+                var session = await gateway.CreateCheckoutAsync(order, request.Method, ct);
+                order.StartOnlinePayment(gateway.Name, session.ProviderRef, session.CheckoutUrl, now);
+                checkoutUrl = session.CheckoutUrl;
+                break;
         }
 
         await db.SaveChangesAsync(ct);
 
         var dto = OrderDto.From(order);
         await notifier.OrderChangedAsync(dto, ct);
-        return new KioskOrderDto(dto, SlipTokenFor(order), checkoutUrl);
+        return new KioskOrderDto(dto, SlipTokenFor(order), checkoutUrl, qrImage, qrTestUrl, cardPublicKey);
+    }
+
+    /// <summary>
+    /// The reader read a card and turned it into a gateway payment method. This API attaches it with the secret key
+    /// and applies the gateway's answer straight away, the way a card terminal settles; the webhook later finds the
+    /// payment already settled. When the bank wants 3DS, CheckoutUrl carries its page for the customer's phone.
+    /// </summary>
+    public async Task<KioskOrderDto> TapCardAsync(Guid orderId, CardTapRequest request, Guid deviceId, CancellationToken ct)
+    {
+        await cardTapValidator.ValidateAndThrowAsync(request, ct);
+
+        var order = await GetOwnedAsync(orderId, deviceId, ct);
+        if (order.Status != OrderStatus.PaymentPending || order.PaymentMethod != PaymentMethod.Card)
+            throw new DomainException("not_waiting_for_card", "This order isn't waiting for a card.");
+        var payment = PendingPayment(order)
+            ?? throw new DomainException("not_waiting_for_card", "This order isn't waiting for a card.");
+
+        var result = await gateway.AttachCardAsync(payment.ProviderRef!, request.PaymentMethodId, order.Id, ct);
+        if (result.Status == IntentStatus.NeedsAction)
+        {
+            payment.CheckoutUrl = result.ActionUrl;
+            await db.SaveChangesAsync(ct);
+        }
+        else
+        {
+            await ApplyAsync(payment.ProviderRef!, result, $"attach_{payment.ProviderRef}_{request.PaymentMethodId}", ct);
+        }
+
+        return await GetAsync(orderId, deviceId, ct);
     }
 
     /// <summary>Customer backed out of the e-wallet/card checkout; the kiosk then offers Retry or Switch to cash.</summary>
@@ -91,20 +139,49 @@ public sealed class KioskOrderService(
         return new KioskOrderDto(dto, null, null);
     }
 
-    /// <summary>Status poll fallback. A kiosk can only read orders it created.</summary>
+    /// <summary>
+    /// Status poll fallback. A kiosk can only read orders it created. While an online payment is open it also asks
+    /// the gateway, so a payment still settles when the webhook is slow, lost, or cannot reach this API (local dev).
+    /// </summary>
     public async Task<KioskOrderDto> GetAsync(Guid orderId, Guid deviceId, CancellationToken ct)
     {
-        var order = await db.Orders.AsNoTracking().WithDetails()
-            .FirstOrDefaultAsync(o => o.Id == orderId && o.DeviceId == deviceId, ct)
-            ?? throw new NotFoundException("Order not found.");
+        var order = await LoadAsync(orderId, deviceId, ct);
+        var pending = PendingPayment(order);
 
-        var pending = order.Payments
-            .Where(p => p.Status == PaymentStatus.Pending)
-            .OrderByDescending(p => p.CreatedAt)
-            .FirstOrDefault();
+        if (order.Status == OrderStatus.PaymentPending && pending?.ProviderRef is { } reference)
+        {
+            IntentResult? result = null;
+            try { result = await gateway.GetIntentAsync(reference, ct); }
+            catch (HttpRequestException ex) { logger.LogWarning(ex, "Could not check payment {Ref}", reference); }
+
+            if (result is { Status: IntentStatus.Succeeded or IntentStatus.Failed })
+            {
+                await ApplyAsync(reference, result, $"poll_{reference}_{result.Status}", ct);
+                order = await LoadAsync(orderId, deviceId, ct);
+                pending = PendingPayment(order);
+            }
+        }
+
         var checkoutUrl = order.Status == OrderStatus.PaymentPending ? pending?.CheckoutUrl : null;
         return new KioskOrderDto(OrderDto.From(order), SlipTokenFor(order), checkoutUrl);
     }
+
+    /// <summary>Applies a gateway answer through the same once-only path as a webhook.</summary>
+    private Task ApplyAsync(string providerRef, IntentResult result, string eventId, CancellationToken ct) =>
+        payments.HandleAsync(new PaymentEvent(
+            gateway.Name, eventId, "api.payment_intent", result.Status == IntentStatus.Succeeded, providerRef,
+            result.Amount, result.FailureReason), ct);
+
+    private async Task<Order> LoadAsync(Guid orderId, Guid deviceId, CancellationToken ct) =>
+        await db.Orders.AsNoTracking().WithDetails()
+            .FirstOrDefaultAsync(o => o.Id == orderId && o.DeviceId == deviceId, ct)
+        ?? throw new NotFoundException("Order not found.");
+
+    private static Payment? PendingPayment(Order order) =>
+        order.Payments
+            .Where(p => p.Status == PaymentStatus.Pending)
+            .OrderByDescending(p => p.CreatedAt)
+            .FirstOrDefault();
 
     /// <summary>Drives the soft "table already in use" warning; never blocks the order.</summary>
     public async Task<TableStatusDto> GetTableStatusAsync(int tableNumber, CancellationToken ct)

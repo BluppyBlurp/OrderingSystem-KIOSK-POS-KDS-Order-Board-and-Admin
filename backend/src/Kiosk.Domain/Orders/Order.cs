@@ -107,7 +107,7 @@ public class Order
         TransitionTo(method == Orders.PaymentMethod.Cash ? OrderStatus.AwaitingPayment : OrderStatus.PaymentPending, now);
     }
 
-    public Payment StartOnlinePayment(string provider, string providerRef, string checkoutUrl, DateTimeOffset now)
+    public Payment StartOnlinePayment(string provider, string providerRef, string? checkoutUrl, DateTimeOffset now)
     {
         if (Status != OrderStatus.PaymentPending || PaymentMethod is null or Orders.PaymentMethod.Cash)
             throw new DomainException("not_payment_pending", "Online payment can only start on a PaymentPending order.");

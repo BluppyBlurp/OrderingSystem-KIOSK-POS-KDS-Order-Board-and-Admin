@@ -26,11 +26,17 @@ public sealed class KioskController(MenuQueryService menu, KioskOrderService ord
         return CreatedAtAction(nameof(GetOrder), new { id = result.Order.Id }, result);
     }
 
-    /// <summary>Cash → slip with QR token. E-wallet/card → checkout URL.</summary>
+    /// <summary>Cash → slip with QR token. QR Ph → QR image. Card → reader key. E-wallet → checkout URL.</summary>
     [HttpPost("orders/{id:guid}/pay")]
     [EnableRateLimiting(RateLimits.KioskOrders)]
     public Task<KioskOrderDto> Pay(Guid id, PayRequest request, CancellationToken ct) =>
         orders.PayAsync(id, request, User.GetDeviceId(), ct);
+
+    /// <summary>The card reader's payment method for a Card order. Settles at once, or returns a 3DS page.</summary>
+    [HttpPost("orders/{id:guid}/card-tap")]
+    [EnableRateLimiting(RateLimits.KioskOrders)]
+    public Task<KioskOrderDto> TapCard(Guid id, CardTapRequest request, CancellationToken ct) =>
+        orders.TapCardAsync(id, request, User.GetDeviceId(), ct);
 
     [HttpPost("orders/{id:guid}/cancel-checkout")]
     public Task<KioskOrderDto> CancelCheckout(Guid id, CancellationToken ct) =>

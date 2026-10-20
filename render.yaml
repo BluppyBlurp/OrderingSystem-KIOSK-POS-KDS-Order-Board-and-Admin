@@ -49,6 +49,8 @@ services:
       # PayMongo. Online payments return an error until these are set.
       - key: PayMongo__SecretKey
         sync: false
+      - key: PayMongo__PublicKey
+        sync: false
       - key: PayMongo__WebhookSecret
         sync: false
       - key: PayMongo__SuccessUrl

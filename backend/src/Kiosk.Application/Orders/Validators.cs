@@ -43,3 +43,10 @@ public sealed class PayRequestValidator : AbstractValidator<PayRequest>
 {
     public PayRequestValidator() => RuleFor(x => x.Method).IsInEnum();
 }
+
+public sealed class CardTapRequestValidator : AbstractValidator<CardTapRequest>
+{
+    // A payment method id, so a raw card number sent here by mistake is refused rather than logged or forwarded.
+    public CardTapRequestValidator() =>
+        RuleFor(x => x.PaymentMethodId).NotEmpty().MaximumLength(100).Matches("^pm_[A-Za-z0-9_]+$");
+}
