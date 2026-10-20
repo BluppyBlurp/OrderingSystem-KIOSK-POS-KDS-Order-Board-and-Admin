@@ -68,11 +68,11 @@ export function DiningScreen() {
   return (
     <Screen title="Where will you eat?" onBack={reset}>
       <ChoicePair>
-        <Button variant="choice" size="xl" onClick={() => chooseDining("DineIn")} className="flex-col gap-3">
+        <Button variant="choice" size="xl" onClick={() => chooseDining("DineIn")} className="flex flex-col items-center justify-center gap-3">
           <EatHereIcon />
           Eat here
         </Button>
-        <Button variant="choice" size="xl" onClick={() => chooseDining("TakeOut")} className="flex-col gap-3">
+        <Button variant="choice" size="xl" onClick={() => chooseDining("TakeOut")} className="flex flex-col items-center justify-center gap-3">
           <TakeOutIcon />
           Take out
         </Button>
@@ -86,11 +86,11 @@ export function ServiceScreen() {
   return (
     <Screen title="How should we bring it?" onBack={() => go("dining")}>
       <ChoicePair>
-        <Button variant="choice" size="xl" onClick={() => chooseService("CounterPickup")} className="flex-col gap-2">
+        <Button variant="choice" size="xl" onClick={() => chooseService("CounterPickup")} className="flex flex-col items-center justify-center gap-2">
           Pick up at the counter
           <span className="text-[length:var(--text-step-0)] font-normal text-ink-soft">We'll call your number</span>
         </Button>
-        <Button variant="choice" size="xl" onClick={() => chooseService("ServeToTable")} className="flex-col gap-2">
+        <Button variant="choice" size="xl" onClick={() => chooseService("ServeToTable")} className="flex flex-col items-center justify-center gap-2">
           Bring it to my table
           <span className="text-[length:var(--text-step-0)] font-normal text-ink-soft">Grab a number stand first</span>
         </Button>
