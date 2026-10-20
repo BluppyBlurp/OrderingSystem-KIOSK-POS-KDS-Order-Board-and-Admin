@@ -84,8 +84,9 @@ function BoardScreen() {
         </div>
       </header>
 
-      {/* A board is hung either way: side by side in landscape, stacked in portrait. */}
-      <div className="grid min-h-0 flex-1 grid-rows-2 landscape:grid-cols-2 landscape:grid-rows-1">
+      {/* A board is hung either way: side by side in landscape, stacked in portrait. In landscape the columns
+          share a heading row, so a heading that wraps keeps both dividers level. */}
+      <div className="grid min-h-0 flex-1 grid-rows-2 landscape:grid-cols-2 landscape:grid-rows-[auto_minmax(0,1fr)]">
         <Column
           title="Preparing"
           empty="Nothing cooking"
@@ -126,12 +127,12 @@ function Column({
 }) {
   return (
     <section
-      className={`flex min-h-0 flex-col border-b-6 border-line last:border-b-0 landscape:border-b-0 landscape:border-r-6 landscape:last:border-r-0 ${
+      className={`flex min-h-0 flex-col border-b-6 border-line last:border-b-0 landscape:row-span-2 landscape:grid landscape:grid-rows-subgrid landscape:border-b-0 landscape:border-r-6 landscape:last:border-r-0 ${
         loud ? "bg-accent" : "bg-paper"
       }`}
     >
       <h1
-        className={`border-b-3 border-line px-5 py-3 text-center display text-[length:var(--text-step-3)] ${
+        className={`flex items-center justify-center border-b-3 border-line px-5 py-3 text-center display text-[length:var(--text-step-3)] ${
           loud ? "text-ink" : "text-ink-soft"
         }`}
       >
