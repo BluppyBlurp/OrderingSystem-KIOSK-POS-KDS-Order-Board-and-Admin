@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseAmount, pressKey, quickAmounts } from "./cash";
+import { parseAmount, pressKey, quickAmounts, typeAmount } from "./cash";
 
 describe("quickAmounts", () => {
   it("offers exact, then the next round bills", () => {
@@ -41,6 +41,20 @@ describe("pressKey", () => {
 
   it("caps very large amounts", () => {
     expect(type("1", "2", "3", "4", "5", "6", "7", "8")).toBe("1234567");
+  });
+});
+
+describe("typeAmount", () => {
+  it("keeps what the keypad would allow", () => {
+    expect(typeAmount("500")).toBe("500");
+    expect(typeAmount("007")).toBe("7");
+    expect(typeAmount("1.259")).toBe("1.25");
+    expect(typeAmount("1..5")).toBe("1.5");
+  });
+
+  it("drops anything that isn't a digit or a point", () => {
+    expect(typeAmount("₱1,000")).toBe("1000");
+    expect(typeAmount("abc")).toBe("");
   });
 });
 

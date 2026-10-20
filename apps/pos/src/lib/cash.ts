@@ -27,4 +27,8 @@ export function pressKey(current: string, key: string): string {
   return next;
 }
 
-export const parseAmount = (typed: string): number => (typed === "" || typed === "." ? 0 : Number(typed));
+/** Cleans what was typed into the cash box with a keyboard, by the same rules as the keypad. */
+export const typeAmount = (raw: string): string =>
+  [...raw].filter((ch) => /[\d.]/.test(ch)).reduce(pressKey, "");
+
+export const parseAmount =(typed: string): number => (typed === "" || typed === "." ? 0 : Number(typed));

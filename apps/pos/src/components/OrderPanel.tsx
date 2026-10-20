@@ -1,7 +1,7 @@
 import { ApiError } from "@kiosk/api-client";
 import { useState } from "react";
 import { cancelOrder, confirmCash, type CashConfirmation, type Order } from "../api";
-import { parseAmount, pressKey, quickAmounts } from "../lib/cash";
+import { parseAmount, pressKey, quickAmounts, typeAmount } from "../lib/cash";
 import { CashReceipt, usePrintOnce } from "./Receipt";
 import { Alert, Button, Modal, money, time, whereLabel } from "./ui";
 
@@ -108,14 +108,29 @@ export function OrderPanel({
 
       {canPay && (
         <section className="w-full shrink-0 xl:w-96">
-          <p className="mb-1 text-[length:var(--text-step-0)] font-semibold text-ink-soft">Cash received</p>
-          <p
-            className={`display mb-3 min-h-16 border-3 bg-card px-3 text-right text-[length:var(--text-step-4)] leading-[1.4] tabular-nums ${
+          <label htmlFor="cash" className="mb-1 block text-[length:var(--text-step-0)] font-semibold text-ink-soft">
+            Cash received
+          </label>
+          {/* A real input, so a cashier can tap it and use a number pad; the scan box leaves focused inputs alone. */}
+          <label
+            className={`display mb-3 flex min-h-16 items-center border-3 bg-card px-3 text-[length:var(--text-step-4)] tabular-nums focus-within:border-accent-deep ${
               short ? "border-brand" : "border-line"
             }`}
           >
-            {typed ? money(tendered) : <span className="text-ink-soft/40">—</span>}
-          </p>
+            <span className={typed ? "" : "text-ink-soft/40"}>₱</span>
+            <input
+              id="cash"
+              value={typed}
+              onChange={(e) => setTyped(typeAmount(e.target.value))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !busy && tendered >= current.total) void pay();
+              }}
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="—"
+              className="w-full min-w-0 bg-transparent text-right outline-none placeholder:text-ink-soft/40"
+            />
+          </label>
 
           <div className="mb-3 grid grid-cols-2 gap-2">
             {quickAmounts(current.total).map((amount, i) => (
