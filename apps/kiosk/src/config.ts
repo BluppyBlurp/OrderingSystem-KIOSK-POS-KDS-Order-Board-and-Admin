@@ -5,6 +5,8 @@ export const config = {
   tableMin: Number(import.meta.env.VITE_TABLE_MIN ?? 1),
   tableMax: Number(import.meta.env.VITE_TABLE_MAX ?? 60),
   isDev: import.meta.env.DEV,
+  /** Which card reader this kiosk has. "none" hides the Card option. */
+  cardReader: (import.meta.env.VITE_CARD_READER === "simulated" ? "simulated" : "none") as "simulated" | "none",
 };
 
 /** The kiosk's device token: entered once on the setup screen; in dev, falls back to the seeded dev token. */

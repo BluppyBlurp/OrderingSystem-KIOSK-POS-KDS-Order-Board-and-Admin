@@ -2,6 +2,7 @@ import { ApiError } from "@kiosk/api-client";
 import { useRef, useState } from "react";
 import { createOrder, payOrder, type KioskOrder, type PaymentMethod } from "../api";
 import { Button, Modal, money, Screen } from "../components/ui";
+import { config } from "../config";
 import { cartTotal, toOrderLines } from "../lib/cart";
 import { useKiosk } from "../store";
 import { OrderSummaryBadge } from "./MenuScreen";
@@ -89,7 +90,7 @@ export function CheckoutScreen() {
           </span>
         </Button>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className={`grid gap-4 ${config.cardReader === "none" ? "" : "sm:grid-cols-2"}`}>
           <Button
             variant="choice"
             size="xl"
@@ -101,23 +102,27 @@ export function CheckoutScreen() {
             <span>
               QR Ph
               <span className="block text-[length:var(--text-step-0)] font-normal text-ink-soft">
-                GCash, Maya or your bank app
+                GCash, Maya or any bank app
               </span>
             </span>
           </Button>
-          <Button
-            variant="choice"
-            size="xl"
-            className="flex-row items-center justify-start gap-5 text-left"
-            disabled={busy}
-            onClick={() => place("Card")}
-          >
-            <CardIcon />
-            <span>
-              Card
-              <span className="block text-[length:var(--text-step-0)] font-normal text-ink-soft">Visa or Mastercard</span>
-            </span>
-          </Button>
+          {config.cardReader !== "none" && (
+            <Button
+              variant="choice"
+              size="xl"
+              className="flex-row items-center justify-start gap-5 text-left"
+              disabled={busy}
+              onClick={() => place("Card")}
+            >
+              <CardIcon />
+              <span>
+                Tap card
+                <span className="block text-[length:var(--text-step-0)] font-normal text-ink-soft">
+                  Visa or Mastercard on the reader
+                </span>
+              </span>
+            </Button>
+          )}
         </div>
 
         {busy && <p className="text-center text-[length:var(--text-step-1)] font-semibold">Placing your order…</p>}

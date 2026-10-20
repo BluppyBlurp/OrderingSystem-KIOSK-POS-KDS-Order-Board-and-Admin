@@ -23,6 +23,10 @@ export const createOrder = (body: Schemas["CreateOrderRequest"]) =>
 export const payOrder = (id: string, method: PaymentMethod) =>
   unwrap(api.POST("/api/kiosk/orders/{id}/pay", { params: { path: { id } }, body: { method } }));
 
+/** Sends the card reader's PayMongo payment method (pm_…), never the card itself. */
+export const tapCard = (id: string, paymentMethodId: string) =>
+  unwrap(api.POST("/api/kiosk/orders/{id}/card-tap", { params: { path: { id } }, body: { paymentMethodId } }));
+
 export const cancelCheckout = (id: string) =>
   unwrap(api.POST("/api/kiosk/orders/{id}/cancel-checkout", { params: { path: { id } } }));
 

@@ -437,6 +437,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/kiosk/orders/{id}/card-tap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CardTapRequest"];
+                    "text/json": components["schemas"]["CardTapRequest"];
+                    "application/*+json": components["schemas"]["CardTapRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["KioskOrderDto"];
+                        "application/json": components["schemas"]["KioskOrderDto"];
+                        "text/json": components["schemas"]["KioskOrderDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/kiosk/orders/{id}/cancel-checkout": {
         parameters: {
             query?: never;
@@ -1815,6 +1860,236 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["StaffOverviewDto"];
+                        "application/json": components["schemas"]["StaffOverviewDto"];
+                        "text/json": components["schemas"]["StaffOverviewDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InviteStaffRequest"];
+                    "text/json": components["schemas"]["InviteStaffRequest"];
+                    "application/*+json": components["schemas"]["InviteStaffRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["StaffInvitation"];
+                        "application/json": components["schemas"]["StaffInvitation"];
+                        "text/json": components["schemas"]["StaffInvitation"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/invitations/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{userId}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetStaffRoleRequest"];
+                    "text/json": components["schemas"]["SetStaffRoleRequest"];
+                    "application/*+json": components["schemas"]["SetStaffRoleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["StaffMemberDto"];
+                        "application/json": components["schemas"]["StaffMemberDto"];
+                        "text/json": components["schemas"]["StaffMemberDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{userId}/remove-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/staff/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1856,6 +2131,9 @@ export interface components {
         };
         CancelOrderRequest: {
             reason: string;
+        };
+        CardTapRequest: {
+            paymentMethodId: string;
         };
         CashConfirmationDto: {
             order: components["schemas"]["OrderDto"];
@@ -1928,10 +2206,18 @@ export interface components {
         DeviceKind: "Kiosk" | "Board";
         /** @enum {unknown} */
         DiningOption: "DineIn" | "TakeOut";
+        InviteStaffRequest: {
+            email: string;
+            role: string;
+            redirectUrl: null | string;
+        };
         KioskOrderDto: {
             order: components["schemas"]["OrderDto"];
             slipToken: null | string;
             checkoutUrl: null | string;
+            qrImage?: null | string;
+            qrTestUrl?: null | string;
+            cardPublicKey?: null | string;
         };
         MediaDto: {
             /** Format: uuid */
@@ -2134,6 +2420,9 @@ export interface components {
         SetAvailabilityRequest: {
             isAvailable: boolean;
         };
+        SetStaffRoleRequest: {
+            role: string;
+        };
         SetStockRequest: {
             /** Format: int32 */
             stock: null | number;
@@ -2147,6 +2436,32 @@ export interface components {
             allCashiers: components["schemas"]["CashTotalsDto"];
             /** Format: int32 */
             cancelledByMe: number;
+        };
+        StaffInvitation: {
+            id: string;
+            email: string;
+            role: null | string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        StaffMemberDto: {
+            id: string;
+            name: string;
+            email: null | string;
+            role: null | string;
+            imageUrl: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSignInAt: null | string;
+            canManage: boolean;
+            isYou: boolean;
+        };
+        StaffOverviewDto: {
+            staff: components["schemas"]["StaffMemberDto"][];
+            pendingApproval: components["schemas"]["StaffMemberDto"][];
+            invitations: components["schemas"]["StaffInvitation"][];
+            assignableRoles: string[];
         };
         TableStatusDto: {
             /** Format: int32 */

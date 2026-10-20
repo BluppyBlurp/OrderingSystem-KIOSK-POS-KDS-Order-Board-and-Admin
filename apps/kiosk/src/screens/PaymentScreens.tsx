@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { useEffect, useState } from "react";
-import { cancelCheckout, getOrder, payOrder, simulatePayment, type KioskOrder } from "../api";
+import { useEffect, useState, type ReactNode } from "react";
+import { cancelCheckout, getOrder, payOrder, simulatePayment, tapCard, type KioskOrder } from "../api";
 import { PrintableReceipt, usePrintOnce } from "../components/Receipt";
 import { Button, Modal, money, Screen } from "../components/ui";
 import { config } from "../config";
 import { useAutoReturn } from "../hooks/useIdleReset";
+import { readTestCard, TEST_CARDS, type TestCard } from "../lib/cardReader";
 import { useWatchOrder } from "../realtime";
 import { useKiosk } from "../store";
 
@@ -73,7 +74,60 @@ export function CashSlipScreen() {
   );
 }
 
-/** QR Ph / card: the customer scans with their phone and pays on PayMongo's page; the webhook marks it Paid. */
+/** Footer and error line shared by the QR Ph and card screens. */
+function PayFooter({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap items-center gap-2 sm:gap-3">{children}</div>;
+}
+
+function ErrorLine({ error }: { error: string | null }) {
+  if (!error) return null;
+  return (
+    <p className="border-3 border-brand bg-card p-3 text-[length:var(--text-step-0)] font-semibold text-brand">{error}</p>
+  );
+}
+
+/** A card held over a reader. */
+function TapIcon() {
+  const line = { stroke: "currentColor", strokeWidth: 3, fill: "none", strokeLinejoin: "round" as const };
+  return (
+    <svg viewBox="0 0 96 72" className="h-28 w-36 text-ink" aria-hidden="true">
+      <rect x="10" y="40" width="76" height="28" rx="4" {...line} />
+      <rect x="28" y="6" width="48" height="30" rx="3" {...line} transform="rotate(-12 52 21)" fill="#fff" />
+      <path d="M62 50 q6 6 0 12 M70 46 q10 10 0 20" {...line} stroke="#b32317" />
+    </svg>
+  );
+}
+
+/**
+ * Stand-in for the reader the kiosk will have. Each button is one tap of a PayMongo test card.
+ * Shown only when VITE_CARD_READER=simulated.
+ */
+function SimulatedReader({ disabled, onTap }: { disabled: boolean; onTap: (card: TestCard) => void }) {
+  return (
+    <div className="w-full border-3 border-dashed border-line bg-paper p-4 text-left">
+      <p className="text-[length:var(--text-step-0)] font-semibold">Simulated card reader · PayMongo test cards</p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {TEST_CARDS.map((card) => (
+          <Button
+            key={card.number}
+            disabled={disabled}
+            onClick={() => onTap(card)}
+            className="flex items-center justify-between gap-3 text-left"
+          >
+            <span>{card.label}</span>
+            <span className="shrink-0 whitespace-nowrap tabular-nums text-ink-soft">•••• {card.number.slice(-4)}</span>
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * QR Ph and card. QR Ph: the customer scans PayMongo's QR Ph code with any InstaPay bank or e-wallet app.
+ * Card: the customer taps the reader; the API settles it at once, or hands over the bank's 3DS page.
+ * Either way the API, not the kiosk, decides an order is Paid.
+ */
 export function OnlinePayScreen() {
   const { placedOrder, setPlacedOrder, reset } = useKiosk();
   const queryClient = useQueryClient();
@@ -82,8 +136,8 @@ export function OnlinePayScreen() {
   const orderId = placedOrder?.order.id;
   useWatchOrder(orderId);
 
-  // Realtime pushes refresh this query at once; polling is the fallback the docs call for.
-  // Either way the webhook is the only thing that sets Paid.
+  // Realtime pushes refresh this query at once; polling is the fallback, and each poll also has the API check
+  // PayMongo, so a QR Ph payment settles even when no webhook can reach the API.
   const { data: latest } = useQuery({
     queryKey: ["order", orderId],
     queryFn: () => getOrder(orderId!),
@@ -97,17 +151,18 @@ export function OnlinePayScreen() {
   }, [latest, setPlacedOrder]);
 
   if (!placedOrder) return null;
-  const { order, checkoutUrl } = placedOrder;
+  const { order, qrImage, qrTestUrl, cardPublicKey } = placedOrder;
+  const checkoutUrl = latest?.checkoutUrl ?? placedOrder.checkoutUrl;
   const method = order.paymentMethod === "Card" ? "Card" : "QrPh";
   const methodLabel = method === "Card" ? "card" : "QR Ph";
 
-  const run = async (action: () => Promise<KioskOrder>, screen: "onlinePay" | "cashSlip") => {
+  const run = async (action: () => Promise<KioskOrder>, screen: "onlinePay" | "cashSlip" = "onlinePay") => {
     setBusy(true);
     setError(null);
     try {
       const next = await action();
       queryClient.setQueryData(["order", next.order.id], next); // don't flash the old status until the next poll
-      setPlacedOrder(next, screen);
+      setPlacedOrder(next, next.order.status === "Paid" ? "receipt" : screen);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
@@ -115,14 +170,16 @@ export function OnlinePayScreen() {
     }
   };
 
-  // From an open checkout the API needs the cancel first; a failed payment can switch straight to cash.
+  // From an open payment the API needs the cancel first; a failed payment can switch straight to cash.
   const switchToCash = () =>
     run(async () => {
       if (status === "PaymentPending") await cancelCheckout(order.id);
       return payOrder(order.id, "Cash");
     }, "cashSlip");
-  const retry = () => run(() => payOrder(order.id, method), "onlinePay");
-  const backOut = () => run(() => cancelCheckout(order.id), "onlinePay");
+  const retry = () => run(() => payOrder(order.id, method));
+  const backOut = () => run(() => cancelCheckout(order.id));
+  const tap = (card: TestCard) => run(async () => tapCard(order.id, await readTestCard(card, cardPublicKey)));
+  const simulate = () => simulatePayment(order.id).catch((e: Error) => setError(e.message));
 
   if (status === "Expired" || status === "Cancelled") {
     return (
@@ -159,11 +216,7 @@ export function OnlinePayScreen() {
               Pay at the counter
             </Button>
           </div>
-          {error && (
-            <p className="border-3 border-brand bg-card p-3 text-[length:var(--text-step-0)] font-semibold text-brand">
-              {error}
-            </p>
-          )}
+          <ErrorLine error={error} />
           <Button variant="quiet" disabled={busy} onClick={reset}>
             Start over
           </Button>
@@ -172,32 +225,91 @@ export function OnlinePayScreen() {
     );
   }
 
+  const footer = (dev: ReactNode) => (
+    <PayFooter>
+      <Button disabled={busy} onClick={backOut}>
+        Cancel
+      </Button>
+      {config.isDev && dev}
+      <Button className="ml-auto" disabled={busy} onClick={switchToCash}>
+        Pay at the counter instead
+      </Button>
+    </PayFooter>
+  );
+
+  if (method === "Card") {
+    // The bank wants 3D Secure: the customer approves on their own phone, then the webhook or the poll settles it.
+    if (checkoutUrl) {
+      return (
+        <Screen
+          footer={footer(
+            <Button disabled={busy} onClick={simulate}>
+              Simulate approval (dev)
+            </Button>,
+          )}
+        >
+          <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 p-5 text-center sm:gap-5 sm:p-8">
+            <h2 className="display text-[length:var(--text-step-3)] leading-tight">Your bank wants to confirm it's you</h2>
+            <p className="text-[length:var(--text-step-1)] text-ink-soft">
+              Scan with your phone and approve the {money(order.total)} payment.
+            </p>
+            <div className="border-3 border-line bg-card p-4">
+              <QRCodeSVG value={checkoutUrl} size={240} />
+            </div>
+            <p className="animate-pulse display text-[length:var(--text-step-1)]">Waiting for your bank…</p>
+            <ErrorLine error={error} />
+          </div>
+        </Screen>
+      );
+    }
+
+    return (
+      <Screen footer={footer(null)}>
+        <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 p-5 text-center sm:gap-5 sm:p-8">
+          <h2 className="display text-[length:var(--text-step-3)] leading-tight">Tap your card on the reader</h2>
+          <p className="text-[length:var(--text-step-1)] text-ink-soft">{money(order.total)} · Visa or Mastercard</p>
+          <TapIcon />
+          <p className={`display text-[length:var(--text-step-1)] ${busy ? "animate-pulse" : ""}`}>
+            {busy ? "Reading your card…" : "Hold it flat against the reader until it beeps."}
+          </p>
+          <p className="text-[length:var(--text-step-0)] text-ink-soft">
+            Order {order.orderNumber} · pay before {time(order.expiresAt)}
+          </p>
+          <ErrorLine error={error} />
+          {config.cardReader === "simulated" && <SimulatedReader disabled={busy} onTap={tap} />}
+        </div>
+      </Screen>
+    );
+  }
+
   return (
     <Screen
-      footer={
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button disabled={busy} onClick={backOut}>
-            Cancel
+      footer={footer(
+        qrTestUrl ? (
+          <Button disabled={busy} onClick={() => window.open(qrTestUrl, "_blank", "noopener")}>
+            Pay test QR (sandbox)
           </Button>
-          {config.isDev && (
-            <Button disabled={busy} onClick={() => simulatePayment(order.id).catch((e: Error) => setError(e.message))}>
-              Simulate payment (dev)
-            </Button>
-          )}
-          <Button className="ml-auto" disabled={busy} onClick={switchToCash}>
-            Pay at the counter instead
+        ) : (
+          <Button disabled={busy} onClick={simulate}>
+            Simulate payment (dev)
           </Button>
-        </div>
-      }
+        ),
+      )}
     >
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 p-5 text-center sm:gap-5 sm:p-8">
-        <h2 className="display text-[length:var(--text-step-3)] leading-tight">
-          Scan to pay with your phone
-        </h2>
+        <h2 className="display text-[length:var(--text-step-3)] leading-tight">Scan to pay with QR Ph</h2>
         <p className="text-[length:var(--text-step-1)] text-ink-soft">
-          {money(order.total)} by {methodLabel}
+          {money(order.total)} · open GCash, Maya or your bank app and scan
         </p>
-        {checkoutUrl ? (
+        {qrImage ? (
+          <div className="border-3 border-line bg-card p-3">
+            <img
+              src={qrImage}
+              alt={`QR Ph code for ${money(order.total)}`}
+              className="h-64 w-64 [image-rendering:pixelated]"
+            />
+          </div>
+        ) : checkoutUrl ? (
           <div className="border-3 border-line bg-card p-4">
             <QRCodeSVG value={checkoutUrl} size={260} />
           </div>
@@ -207,14 +319,8 @@ export function OnlinePayScreen() {
         <p className="text-[length:var(--text-step-0)] text-ink-soft">
           Order {order.orderNumber} · pay before {time(order.expiresAt)}
         </p>
-        <p className="animate-pulse display text-[length:var(--text-step-1)]">
-          Waiting for payment…
-        </p>
-        {error && (
-          <p className="border-3 border-brand bg-card p-3 text-[length:var(--text-step-0)] font-semibold text-brand">
-            {error}
-          </p>
-        )}
+        <p className="animate-pulse display text-[length:var(--text-step-1)]">Waiting for payment…</p>
+        <ErrorLine error={error} />
       </div>
     </Screen>
   );
